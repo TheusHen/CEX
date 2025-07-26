@@ -1,15 +1,19 @@
 'use strict'
 
-require('dotenv').config()
+const Fastify = require('fastify')
+const rootRoute = require('./routes/root')
+const apiRoute = require('./routes/api')
+const cexRoute = require('./routes/cex')
 
-const cexRoutes = require('./routes/cex')
-const apiRoutes = require('./routes/api')
-const rootRoutes = require('./routes/root')
+async function buildApp() {
+  const app = Fastify()
 
-async function app(fastify, opts) {
-  fastify.register(rootRoutes, { prefix: '/' })
-  fastify.register(cexRoutes, { prefix: '/api' })
-  fastify.register(apiRoutes, { prefix: '/api' })
+  // Registra as rotas
+  app.register(rootRoute)
+  app.register(apiRoute, { prefix: '/api' })
+  app.register(cexRoute)
+
+  return app
 }
 
-module.exports = app
+module.exports = buildApp

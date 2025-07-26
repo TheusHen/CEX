@@ -1,7 +1,10 @@
-// utils/supabase.js
-import { createClient } from '@supabase/supabase-js'
+'use strict'
+
+const { createClient } = require('@supabase/supabase-js')
 
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+module.exports = { supabase }
