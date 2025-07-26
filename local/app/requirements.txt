@@ -1,0 +1,4 @@
+pywebview
+flask
+requests
+flask-cors
