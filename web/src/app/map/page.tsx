@@ -4,11 +4,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import * as Papa from "papaparse";
 import MapHeader from "@/app/components/MapHeader";
 import dynamic from "next/dynamic";
+import "leaflet/dist/leaflet.css"; // Importação do CSS do Leaflet corrigida
 
-// Importação dinâmica do MapContainer e outros componentes do react-leaflet
+const isClient = typeof window !== "undefined";
+
+// Importação dinâmica dos componentes do react-leaflet
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-const CircleMarker = dynamic(() => import("react-leaflet").then((mod) => mod.CircleMarker), { ssr: false });
+const Circle = dynamic(() => import("react-leaflet").then((mod) => mod.Circle), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
 const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false });
 const useMapEvents = dynamic(() => import("react-leaflet").then((mod) => mod.useMapEvents), { ssr: false });
@@ -79,10 +82,10 @@ function AirportsMarkers({
   return (
     <>
       {visibleAirports.map((airport) => (
-        <CircleMarker
+        <Circle
           key={airport.id}
           center={[airport.latitude, airport.longitude]}
-          radius={5}
+          radius={500} // Raio ajustado em metros
           pathOptions={{
             color: "#0ff",
             fillColor: "#0ff",
@@ -118,11 +121,11 @@ function AirportsMarkers({
             )}
           </Popup>
           {zoom >= ZOOM_LABELS && (
-            <Tooltip direction="top" offset={[0, -15]} permanent>
+            <Tooltip position="top" offset={[0, -15]} permanent>
               <b>{airport.iata_code}</b> - {airport.name}
             </Tooltip>
           )}
-        </CircleMarker>
+        </Circle>
       ))}
     </>
   );
@@ -177,10 +180,8 @@ export default function AirportsMapPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [flyToUser, setFlyToUser] = useState(false);
 
-  // Dynamically import Leaflet CSS on client only
   useEffect(() => {
     if (isClient) {
-      // @ts-expect-error Leaflet CSS import is dynamically handled for client-side only
       import("leaflet/dist/leaflet.css");
     }
   }, []);
@@ -201,7 +202,7 @@ export default function AirportsMapPage() {
         () => {}
       );
     }
-    // Load airports from CSV
+    // Carregar aeroportos do CSV
     let isMounted = true;
     async function fetchAirports(): Promise<Airport[]> {
       return new Promise<Airport[]>((resolve, reject) => {
@@ -244,9 +245,7 @@ export default function AirportsMapPage() {
 
   return (
     <div className="w-full h-screen relative bg-black">
-      {/* Header (from image 1) */}
       <MapHeader />
-      {/* Map */}
       <div style={{ position: "absolute", inset: "40px 0 0 0", zIndex: 1 }}>
         {isClient && MapContainer && (
           <MapContainer
@@ -275,7 +274,6 @@ export default function AirportsMapPage() {
           </MapContainer>
         )}
       </div>
-      {/* Animations for modal */}
       <style jsx global>{`
         @keyframes fade-in {
           from { opacity: 0 }
