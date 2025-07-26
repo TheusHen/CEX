@@ -2,20 +2,24 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import * as Papa from "papaparse";
-import MapHeader from "@/app/components/MapHeader";
 import dynamic from "next/dynamic";
-import "leaflet/dist/leaflet.css";
+import MapHeader from "@/app/components/MapHeader";
 
+// SSR/Client detection
 const isClient = typeof window !== "undefined";
 
-// Importação dinâmica dos componentes do react-leaflet
-const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-// Corrigido: utilize Circle no lugar de CircleMarker
-const Circle = dynamic(() => import("react-leaflet").then((mod) => mod.Circle), { ssr: false });
-const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
-const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false });
-const useMapEvents = dynamic(() => import("react-leaflet").then((mod) => mod.useMapEvents), { ssr: false });
+// --- move leaflet imports inside component to avoid SSR crash ---
+let MapContainer: any, TileLayer: any, CircleMarker: any, Popup: any, Tooltip: any, useMapEvents: any;
+if (isClient) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const leaflet = require("react-leaflet");
+  MapContainer = leaflet.MapContainer;
+  TileLayer = leaflet.TileLayer;
+  CircleMarker = leaflet.CircleMarker;
+  Popup = leaflet.Popup;
+  Tooltip = leaflet.Tooltip;
+  useMapEvents = leaflet.useMapEvents;
+}
 
 type AirportCex = {
   id: string;
@@ -39,10 +43,10 @@ type Airport = {
 const ZOOM_LABELS = 7;
 
 function AirportsMarkers({
-                           airports,
-                           bounds,
-                           zoom,
-                         }: {
+  airports,
+  bounds,
+  zoom,
+}: {
   airports: Airport[];
   bounds: [[number, number], [number, number]] | null;
   zoom: number;
@@ -53,7 +57,7 @@ function AirportsMarkers({
   async function fetchAirportCex(iata_code: string): Promise<AirportCex[]> {
     // Simple fetch to backend (adjust URL as needed)
     const resp = await fetch(
-        `https://api.cex.theushen.me/airport_cex?iata=${encodeURIComponent(iata_code)}`
+      `https://api.cex.theushen.me/airport_cex?iata=${encodeURIComponent(iata_code)}`
     );
     if (!resp.ok) return [];
     return await resp.json();
@@ -72,72 +76,72 @@ function AirportsMarkers({
     if (!bounds) return [];
     const [[south, west], [north, east]] = bounds;
     return airports.filter(
-        (a) =>
-            a.latitude >= south &&
-            a.latitude <= north &&
-            a.longitude >= west &&
-            a.longitude <= east
+      (a) =>
+        a.latitude >= south &&
+        a.latitude <= north &&
+        a.longitude >= west &&
+        a.longitude <= east
     );
   }, [airports, bounds]);
 
   return (
-      <>
-        {visibleAirports.map((airport) => (
-            <Circle
-                key={airport.id}
-                center={[airport.latitude, airport.longitude]}
-                radius={1000} // Ajuste do "raio" visual do marcador (em metros)
-                pathOptions={{
-                  color: "#0ff",
-                  fillColor: "#0ff",
-                  fillOpacity: 0.7,
-                  weight: 1,
-                }}
-            >
-              <Popup
-                  eventHandlers={{
-                    add: () => handlePopupOpen(airport.iata_code),
-                  }}
-              >
-                <b>{airport.name}</b>
-                <br />
-                IATA: <b>{airport.iata_code}</b>
-                <br />
-                {notesMap[airport.iata_code]?.length ? (
-                    <div style={{ marginTop: 8 }}>
-                      <b>Notes:</b>
-                      <ul>
-                        {notesMap[airport.iata_code].map((note) => (
-                            <li key={note.id}>
-                              {new Date(note.created_at).toLocaleDateString()} —
-                              comfort: {note.comfort ?? "-"} | efficiency: {note.efficiency ?? "-"} | aesthetics: {note.aesthetics ?? "-"} | CEx: {note.cex ?? "-"}
-                            </li>
-                        ))}
-                      </ul>
-                    </div>
-                ) : loadingMap[airport.iata_code] ? (
-                    <span style={{ color: "#888" }}>Loading notes...</span>
-                ) : (
-                    <span style={{ color: "#888" }}>No notes found.</span>
-                )}
-              </Popup>
-              {zoom >= ZOOM_LABELS && (
-                  <Tooltip direction="top" offset={[0, -15]} permanent>
-                    <b>{airport.iata_code}</b> - {airport.name}
-                  </Tooltip>
-              )}
-            </Circle>
-        ))}
-      </>
+    <>
+      {visibleAirports.map((airport) => (
+        <CircleMarker
+          key={airport.id}
+          center={[airport.latitude, airport.longitude]}
+          radius={5}
+          pathOptions={{
+            color: "#0ff",
+            fillColor: "#0ff",
+            fillOpacity: 0.7,
+            weight: 1,
+          }}
+        >
+          <Popup
+            eventHandlers={{
+              add: () => handlePopupOpen(airport.iata_code),
+            }}
+          >
+            <b>{airport.name}</b>
+            <br />
+            IATA: <b>{airport.iata_code}</b>
+            <br />
+            {notesMap[airport.iata_code]?.length ? (
+              <div style={{ marginTop: 8 }}>
+                <b>Notes:</b>
+                <ul>
+                  {notesMap[airport.iata_code].map((note) => (
+                    <li key={note.id}>
+                      {new Date(note.created_at).toLocaleDateString()} —
+                      comfort: {note.comfort ?? "-"} | efficiency: {note.efficiency ?? "-"} | aesthetics: {note.aesthetics ?? "-"} | CEx: {note.cex ?? "-"}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : loadingMap[airport.iata_code] ? (
+              <span style={{ color: "#888" }}>Loading notes...</span>
+            ) : (
+              <span style={{ color: "#888" }}>No notes found.</span>
+            )}
+          </Popup>
+          {zoom >= ZOOM_LABELS && (
+            <Tooltip direction="top" offset={[0, -15]} permanent>
+              <b>{airport.iata_code}</b> - {airport.name}
+            </Tooltip>
+          )}
+        </CircleMarker>
+      ))}
+    </>
   );
 }
 
 function MapEvents({
-                     setBounds,
-                     setZoom,
-                     userLocation,
-                     flyToUser,
-                   }: {
+  setBounds,
+  setZoom,
+  userLocation,
+  flyToUser,
+}: {
   setBounds: (b: [[number, number], [number, number]]) => void;
   setZoom: (z: number) => void;
   userLocation: [number, number] | null;
@@ -181,8 +185,10 @@ export default function AirportsMapPage() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [flyToUser, setFlyToUser] = useState(false);
 
+  // Dynamically import Leaflet CSS on client only
   useEffect(() => {
     if (isClient) {
+      // @ts-ignore
       import("leaflet/dist/leaflet.css");
     }
   }, []);
@@ -193,39 +199,39 @@ export default function AirportsMapPage() {
     setZoom(3);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-            setUserLocation(c);
-            setFlyToUser(true);
-            setCenter(c);
-            setZoom(10);
-          },
-          () => {}
+        (pos) => {
+          const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setUserLocation(c);
+          setFlyToUser(true);
+          setCenter(c);
+          setZoom(10);
+        },
+        () => {}
       );
     }
-    // Carregar aeroportos do CSV
+    // Load airports from CSV
     let isMounted = true;
-    async function fetchAirports(): Promise<Airport[]> {
+    async function fetchAirports() {
       return new Promise<Airport[]>((resolve, reject) => {
         const airports: Airport[] = [];
         Papa.parse("/assets/airports.csv", {
           download: true,
           header: true,
-          step: (results: Papa.ParseStepResult<Record<string, string>>) => {
-            const a = results.data;
+          step: (results) => {
+            const a = results.data as Record<string, unknown>;
             if (
-                a.latitude_deg &&
-                a.longitude_deg &&
-                a.iata_code &&
-                typeof a.iata_code === "string" &&
-                a.iata_code.length === 3
+              a.latitude_deg &&
+              a.longitude_deg &&
+              a.iata_code &&
+              typeof a.iata_code === "string" &&
+              a.iata_code.length === 3
             ) {
               airports.push({
                 id: a.id as string,
                 name: a.name as string,
-                latitude: parseFloat(a.latitude_deg),
-                longitude: parseFloat(a.longitude_deg),
-                iata_code: a.iata_code,
+                latitude: parseFloat(a.latitude_deg as string),
+                longitude: parseFloat(a.longitude_deg as string),
+                iata_code: a.iata_code as string,
               });
             }
           },
@@ -245,37 +251,40 @@ export default function AirportsMapPage() {
   if (!center || !isClient) return null;
 
   return (
-      <div className="w-full h-screen relative bg-black">
-        <MapHeader />
-        <div style={{ position: "absolute", inset: "40px 0 0 0", zIndex: 1 }}>
-          {isClient && MapContainer && (
-              <MapContainer
-                  center={center}
-                  zoom={zoom}
-                  minZoom={2}
-                  maxZoom={12}
-                  style={{ width: "100vw", height: "calc(100vh - 40px)" }}
-                  scrollWheelZoom
-              >
-                <TileLayer
-                    attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <AirportsMarkers
-                    airports={airports}
-                    bounds={bounds}
-                    zoom={zoom}
-                />
-                <MapEvents
-                    setBounds={setBounds}
-                    setZoom={setZoom}
-                    userLocation={userLocation}
-                    flyToUser={flyToUser}
-                />
-              </MapContainer>
-          )}
-        </div>
-        <style jsx global>{`
+    <div className="w-full h-screen relative bg-black">
+      {/* Header (from image 1) */}
+      <MapHeader />
+      {/* Map */}
+      <div style={{ position: "absolute", inset: "40px 0 0 0", zIndex: 1 }}>
+        {isClient && MapContainer && (
+          <MapContainer
+            center={center}
+            zoom={zoom}
+            minZoom={2}
+            maxZoom={12}
+            style={{ width: "100vw", height: "calc(100vh - 40px)" }}
+            scrollWheelZoom
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <AirportsMarkers
+              airports={airports}
+              bounds={bounds}
+              zoom={zoom}
+            />
+            <MapEvents
+              setBounds={setBounds}
+              setZoom={setZoom}
+              userLocation={userLocation}
+              flyToUser={flyToUser}
+            />
+          </MapContainer>
+        )}
+      </div>
+      {/* Animations for modal */}
+      <style jsx global>{`
         @keyframes fade-in {
           from { opacity: 0 }
           to { opacity: 1 }
@@ -287,6 +296,6 @@ export default function AirportsMapPage() {
         }
         .animate-fade-in-up { animation: fade-in-up 0.6s both }
       `}</style>
-      </div>
+    </div>
   );
 }
