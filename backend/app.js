@@ -17,3 +17,12 @@ function buildApp() {
 }
 
 module.exports = buildApp
+
+if (require.main === module) {
+  const app = buildApp()
+  const port = process.env.PORT || 3000
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`)
+  })
+}
+
