@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "./app.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/:iata",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/order/desc",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/order/asc",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/search/:name",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/cex/above/:value",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/api/airports/cex/below/:value",
+      "dest": "./app.js"
+    },
+    {
+      "src": "/cex",
+      "dest": "./app.js"
+    }
+  ]
+}

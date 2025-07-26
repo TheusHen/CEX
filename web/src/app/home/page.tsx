@@ -138,7 +138,7 @@ export default function HomePage() {
 
         {/* About & API Card */}
         <BentoCard
-          href=""
+          href="https://github.com/TheusHen/CEX/tree/main/docs"
           target="_blank"
           className="col-span-1 md:col-span-1 h-52 md:h-[22rem] rounded-[2.2rem] overflow-hidden relative cursor-pointer shadow-lg bg-gradient-to-tr from-teal-100 via-gray-200 to-teal-300 transition-all"
         >

@@ -3,29 +3,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import * as Papa from "papaparse";
 import MapHeader from "@/app/components/MapHeader";
+import dynamic from "next/dynamic";
 
-// SSR/Client detection
-const isClient = typeof window !== "undefined";
-
-// --- move leaflet imports inside component to avoid SSR crash ---
-let MapContainer: typeof import("react-leaflet").MapContainer | null = null;
-let TileLayer: typeof import("react-leaflet").TileLayer | null = null;
-let CircleMarker: typeof import("react-leaflet").CircleMarker | null = null;
-let Popup: typeof import("react-leaflet").Popup | null = null;
-let Tooltip: typeof import("react-leaflet").Tooltip | null = null;
-let useMapEvents: typeof import("react-leaflet").useMapEvents | null = null;
-
-if (isClient) {
-  (async () => {
-    const leaflet = await import("react-leaflet");
-    MapContainer = leaflet.MapContainer;
-    TileLayer = leaflet.TileLayer;
-    CircleMarker = leaflet.CircleMarker;
-    Popup = leaflet.Popup;
-    Tooltip = leaflet.Tooltip;
-    useMapEvents = leaflet.useMapEvents;
-  })();
-}
+// Importação dinâmica do MapContainer e outros componentes do react-leaflet
+const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
+const CircleMarker = dynamic(() => import("react-leaflet").then((mod) => mod.CircleMarker), { ssr: false });
+const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
+const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false });
+const useMapEvents = dynamic(() => import("react-leaflet").then((mod) => mod.useMapEvents), { ssr: false });
 
 type AirportCex = {
   id: string;

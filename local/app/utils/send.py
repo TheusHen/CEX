@@ -2,7 +2,7 @@ import requests
 import json
 import logging
 
-def send_cex_evaluation(data, endpoint='http://127.0.0.1:8080/api/cex'):
+def send_cex_evaluation(data, endpoint='https://api.cex.theushen.me/api/cex'):
     logging.info(f"Sending to {endpoint}: {json.dumps(data, indent=2)}")
     try:
         response = requests.post(endpoint, json=data)
