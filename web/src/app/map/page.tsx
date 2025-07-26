@@ -11,8 +11,8 @@ const isClient = typeof window !== "undefined";
 // Importação dinâmica dos componentes do react-leaflet
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLayer), { ssr: false });
-// Corrigido: utilize CircleMarker no lugar do Circle
-const CircleMarker = dynamic(() => import("react-leaflet").then((mod) => mod.CircleMarker), { ssr: false });
+// Corrigido: utilize Circle no lugar de CircleMarker
+const Circle = dynamic(() => import("react-leaflet").then((mod) => mod.Circle), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
 const Tooltip = dynamic(() => import("react-leaflet").then((mod) => mod.Tooltip), { ssr: false });
 const useMapEvents = dynamic(() => import("react-leaflet").then((mod) => mod.useMapEvents), { ssr: false });
@@ -83,10 +83,10 @@ function AirportsMarkers({
   return (
       <>
         {visibleAirports.map((airport) => (
-            <CircleMarker
+            <Circle
                 key={airport.id}
                 center={[airport.latitude, airport.longitude]}
-                radius={10} // Ajuste do "raio" visual do marcador
+                radius={1000} // Ajuste do "raio" visual do marcador (em metros)
                 pathOptions={{
                   color: "#0ff",
                   fillColor: "#0ff",
@@ -126,7 +126,7 @@ function AirportsMarkers({
                     <b>{airport.iata_code}</b> - {airport.name}
                   </Tooltip>
               )}
-            </CircleMarker>
+            </Circle>
         ))}
       </>
   );
