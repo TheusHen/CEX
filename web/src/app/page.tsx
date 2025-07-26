@@ -16,8 +16,8 @@ export default function CEXLoader() {
   const [showOther, setShowOther] = useState(false);
 
   useEffect(() => {
-    let start = Date.now();
-    let duration = 3000;
+    const start = Date.now();
+    const duration = 3000;
     let raf: number;
 
     function animate() {
@@ -65,3 +65,4 @@ export default function CEXLoader() {
     </div>
   );
 }
+

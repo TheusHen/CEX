@@ -2,23 +2,29 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import * as Papa from "papaparse";
-import dynamic from "next/dynamic";
 import MapHeader from "@/app/components/MapHeader";
 
 // SSR/Client detection
 const isClient = typeof window !== "undefined";
 
 // --- move leaflet imports inside component to avoid SSR crash ---
-let MapContainer: any, TileLayer: any, CircleMarker: any, Popup: any, Tooltip: any, useMapEvents: any;
+let MapContainer: typeof import("react-leaflet").MapContainer | null = null;
+let TileLayer: typeof import("react-leaflet").TileLayer | null = null;
+let CircleMarker: typeof import("react-leaflet").CircleMarker | null = null;
+let Popup: typeof import("react-leaflet").Popup | null = null;
+let Tooltip: typeof import("react-leaflet").Tooltip | null = null;
+let useMapEvents: typeof import("react-leaflet").useMapEvents | null = null;
+
 if (isClient) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const leaflet = require("react-leaflet");
-  MapContainer = leaflet.MapContainer;
-  TileLayer = leaflet.TileLayer;
-  CircleMarker = leaflet.CircleMarker;
-  Popup = leaflet.Popup;
-  Tooltip = leaflet.Tooltip;
-  useMapEvents = leaflet.useMapEvents;
+  (async () => {
+    const leaflet = await import("react-leaflet");
+    MapContainer = leaflet.MapContainer;
+    TileLayer = leaflet.TileLayer;
+    CircleMarker = leaflet.CircleMarker;
+    Popup = leaflet.Popup;
+    Tooltip = leaflet.Tooltip;
+    useMapEvents = leaflet.useMapEvents;
+  })();
 }
 
 type AirportCex = {
@@ -188,7 +194,7 @@ export default function AirportsMapPage() {
   // Dynamically import Leaflet CSS on client only
   useEffect(() => {
     if (isClient) {
-      // @ts-ignore
+      // @ts-expect-error Leaflet CSS import is dynamically handled for client-side only
       import("leaflet/dist/leaflet.css");
     }
   }, []);
@@ -211,14 +217,14 @@ export default function AirportsMapPage() {
     }
     // Load airports from CSV
     let isMounted = true;
-    async function fetchAirports() {
+    async function fetchAirports(): Promise<Airport[]> {
       return new Promise<Airport[]>((resolve, reject) => {
         const airports: Airport[] = [];
         Papa.parse("/assets/airports.csv", {
           download: true,
           header: true,
-          step: (results) => {
-            const a = results.data as Record<string, unknown>;
+          step: (results: Papa.ParseStepResult<Record<string, string>>) => {
+            const a = results.data;
             if (
               a.latitude_deg &&
               a.longitude_deg &&
@@ -229,9 +235,9 @@ export default function AirportsMapPage() {
               airports.push({
                 id: a.id as string,
                 name: a.name as string,
-                latitude: parseFloat(a.latitude_deg as string),
-                longitude: parseFloat(a.longitude_deg as string),
-                iata_code: a.iata_code as string,
+                latitude: parseFloat(a.latitude_deg),
+                longitude: parseFloat(a.longitude_deg),
+                iata_code: a.iata_code,
               });
             }
           },

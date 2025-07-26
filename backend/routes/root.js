@@ -1,7 +1,10 @@
 'use strict'
 
-module.exports = async function (fastify, opts) {
-  fastify.get('/', async function (request, reply) {
-    return { online: true }
-  })
-}
+const express = require('express')
+const router = express.Router()
+
+router.get('/', (req, res) => {
+  res.json({ online: true })
+})
+
+module.exports = router

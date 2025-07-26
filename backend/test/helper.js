@@ -2,11 +2,11 @@
 
 require('dotenv').config()
 const buildApp = require('../app')
+const supertest = require('supertest')
 
-async function build() {
-  const app = await buildApp()
-  await app.ready()
-  return app
+function build() {
+  const app = buildApp()
+  return supertest(app)
 }
 
 module.exports = { build }

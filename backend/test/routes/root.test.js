@@ -3,22 +3,14 @@
 const { build } = require('../helper')
 
 describe('Root Route', () => {
-  let app
+  let request
 
-  beforeAll(async () => {
-    app = await build()
-  })
-
-  afterAll(async () => {
-    if (app) {
-      await app.close()
-    }
+  beforeAll(() => {
+    request = build()
   })
 
   test('default root route', async () => {
-    const res = await app.inject({
-      url: '/'
-    })
-    expect(JSON.parse(res.payload)).toEqual({ online: true })
+    const res = await request.get('/')
+    expect(res.body).toEqual({ online: true })
   })
 })

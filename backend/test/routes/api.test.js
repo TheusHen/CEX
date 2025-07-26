@@ -17,16 +17,10 @@ jest.mock('../../utils/supabase', () => ({
 }))
 
 describe('API Routes', () => {
-  let app
+  let request
 
-  beforeAll(async () => {
-    app = await build()
-  })
-
-  afterAll(async () => {
-    if (app) {
-      await app.close()
-    }
+  beforeAll(() => {
+    request = build()
   })
 
   test('GET /api/airports returns all airports', async () => {
@@ -39,15 +33,11 @@ describe('API Routes', () => {
       error: null
     })
 
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/airports'
-    })
+    const res = await request.get('/api/airports')
 
-    expect(res.statusCode).toBe(200)
-    const result = JSON.parse(res.payload)
-    expect(result.length).toBe(2)
-    expect(result[0].iata).toBe('GRU')
-    expect(result[1].iata).toBe('JFK')
+    expect(res.status).toBe(200)
+    expect(res.body.length).toBe(2)
+    expect(res.body[0].iata).toBe('GRU')
+    expect(res.body[1].iata).toBe('JFK')
   })
 })

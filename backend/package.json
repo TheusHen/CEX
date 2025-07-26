@@ -1,29 +1,27 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "This project was bootstrapped with Fastify-CLI.",
+  "description": "This project was migrated to use Express.",
   "main": "app.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
     "test": "jest",
-    "start": "fastify start -l info --port 8080 app.js",
-    "dev": "fastify start -w -l info -P app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fastify/autoload": "^6.0.0",
-    "@fastify/sensible": "^6.0.0",
     "@supabase/supabase-js": "^2.52.1",
     "dotenv": "^17.2.1",
-    "fastify": "^5.0.0",
-    "fastify-cli": "^7.4.0",
-    "fastify-plugin": "^5.0.0"
+    "express": "^4.18.2"
   },
   "devDependencies": {
-    "jest": "^30.0.5"
+    "jest": "^30.0.5",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   }
 }

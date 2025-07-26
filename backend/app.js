@@ -1,17 +1,17 @@
 'use strict'
 
-const Fastify = require('fastify')
+const express = require('express')
 const rootRoute = require('./routes/root')
 const apiRoute = require('./routes/api')
 const cexRoute = require('./routes/cex')
 
-async function buildApp() {
-  const app = Fastify()
+function buildApp() {
+  const app = express()
+  app.use(express.json())
 
-  // Registra as rotas
-  app.register(rootRoute)
-  app.register(apiRoute, { prefix: '/api' })
-  app.register(cexRoute)
+  app.use('/', rootRoute)
+  app.use('/api', apiRoute)
+  app.use('/cex', cexRoute)
 
   return app
 }

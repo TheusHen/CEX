@@ -11,16 +11,10 @@ jest.mock('../../utils/supabase', () => ({
 }))
 
 describe('CEX Route', () => {
-  let app
+  let request
 
-  beforeAll(async () => {
-    app = await build()
-  })
-
-  afterAll(async () => {
-    if (app) {
-      await app.close()
-    }
+  beforeAll(() => {
+    request = build()
   })
 
   test('POST /cex with valid data', async () => {
@@ -31,15 +25,10 @@ describe('CEX Route', () => {
       iata: 'GRU', airport: 'São Paulo/Guarulhos'
     }
 
-    const res = await app.inject({
-      method: 'POST',
-      url: '/cex',
-      payload: validData
-    })
+    const res = await request.post('/cex').send(validData)
 
-    expect(res.statusCode).toBe(200)
-    const result = JSON.parse(res.payload)
-    expect(result.iata).toBe('GRU')
-    expect(result.airport).toBe('São Paulo/Guarulhos')
+    expect(res.status).toBe(200)
+    expect(res.body.iata).toBe('GRU')
+    expect(res.body.airport).toBe('São Paulo/Guarulhos')
   })
 })
