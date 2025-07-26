@@ -67,7 +67,13 @@ def calculate_cex():
         logging.info(f"Calculated result: {json.dumps(result, indent=2)}")
 
         # Send the original data (not the result!) to backend in a separate thread
-        threading.Thread(target=send_cex_evaluation, args=(data,)).start()
+        def send_data_thread():
+            try:
+                send_cex_evaluation(data)
+            except Exception as e:
+                logging.error(f"Error in send_cex_evaluation: {str(e)}")
+
+        threading.Thread(target=send_data_thread).start()
 
         return jsonify(result), 200
 
