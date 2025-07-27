@@ -1,4 +1,4 @@
-name: Node.js Tests
+name: Python Backend Tests
 
 on:
   push:
@@ -27,8 +27,11 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
         pip install pytest pytest-cov pytest-mock httpx
-        
+
     - name: Run tests
+      env:
+        SUPABASE_URL: "https://dummy.supabase.co"
+        SUPABASE_KEY: "dummy-key"
       run: |
         cd backend
         pytest

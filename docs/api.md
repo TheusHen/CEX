@@ -52,12 +52,33 @@ Get all ratings for all airports.
 
 ---
 
-## GET `/api/airports/:iata`
+## GET `/api/airports/<iata>`
 
 Get ratings for a specific airport by IATA code.
 
 **Params:**
 - `iata`: *string* (IATA code)
+
+**Response:**
+```json
+{
+  "iata": "GRU",
+  "airport": "São Paulo/Guarulhos",
+  "comfort": 7.25,
+  "efficiency": 8.00,
+  "aesthetics": 6.75,
+  "cex": 7.33
+}
+```
+
+---
+
+## GET `/api/airport_cex?iata=GRU`
+
+Get airport information by IATA code using a query parameter.
+
+**Query Params:**
+- `iata`: *string* (IATA code, e.g. `GRU`)
 
 **Response:**
 ```json
@@ -85,7 +106,7 @@ Get all airports ordered by CEX score (lowest to highest).
 
 ---
 
-## GET `/api/airports/search/:name`
+## GET `/api/airports/search/<name>`
 
 Search airports by (partial) name.
 
@@ -94,7 +115,7 @@ Search airports by (partial) name.
 
 ---
 
-## GET `/api/airports/cex/above/:value`
+## GET `/api/airports/cex/above/<value>`
 
 Get airports with CEX score above a value.
 
@@ -103,7 +124,7 @@ Get airports with CEX score above a value.
 
 ---
 
-## GET `/api/airports/cex/below/:value`
+## GET `/api/airports/cex/below/<value>`
 
 Get airports with CEX score below a value.
 
