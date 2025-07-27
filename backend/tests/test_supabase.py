@@ -4,7 +4,7 @@ from utils.supabase import raise_when_api_error
 def test_raise_when_api_error_no_error():
     class Resp:
         error = None
-    raise_when_api_error(Resp())  # Não deve lançar
+    raise_when_api_error(Resp()) # Should not raise an exception
 
 def test_raise_when_api_error_with_error():
     class Resp:

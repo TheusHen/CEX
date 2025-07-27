@@ -1,5 +1,10 @@
+import sys
+import os
 import pytest
-from backend.main import app  # Corrigido para import absoluto com base no pacote
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from main import app
 
 @pytest.fixture
 def client():

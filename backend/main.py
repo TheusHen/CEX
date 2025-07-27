@@ -4,6 +4,7 @@ from flask import Flask, jsonify, Blueprint, request
 from dotenv import load_dotenv
 from flask_cors import CORS, cross_origin
 from utils.supabase import supabase, raise_when_api_error
+from datetime import datetime
 
 load_dotenv()
 
@@ -58,7 +59,11 @@ def post_feedback(iata):
         negative = sel.data.get("negative", 0) + (1 if data.get("negative") else 0)
         upd = (
             supabase.table("airport_feedback")
-            .update({"positive": positive, "negative": negative, "updated_at": "now()"})
+            .update({
+                "positive": positive,
+                "negative": negative,
+                "updated_at": datetime.utcnow().isoformat()
+            })
             .eq("iata", iata)
             .execute()
         )
@@ -66,6 +71,11 @@ def post_feedback(iata):
             raise_when_api_error(upd)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        # upd.data pode ser uma lista ou dict, tente pegar o atualizado
+        if upd.data and isinstance(upd.data, list) and len(upd.data) > 0:
+            return jsonify(upd.data[0])
+        elif upd.data and isinstance(upd.data, dict):
+            return jsonify(upd.data)
         return jsonify({"iata": iata, "positive": positive, "negative": negative})
     else:
         ins = (
@@ -81,7 +91,11 @@ def post_feedback(iata):
             raise_when_api_error(ins)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        return jsonify(ins.data[0])
+        if ins.data and isinstance(ins.data, list) and len(ins.data) > 0:
+            return jsonify(ins.data[0])
+        elif ins.data and isinstance(ins.data, dict):
+            return jsonify(ins.data)
+        return jsonify({"iata": iata, "positive": 1 if data.get("positive") else 0, "negative": 1 if data.get("negative") else 0})
 
 @cex_bp.route("/airports", methods=["GET"])
 def get_airports():

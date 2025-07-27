@@ -48,6 +48,9 @@ profile-*
 # webstorm
 .idea
 
+__pycache__/
+*.pyc
+
 # vscode
 .vscode
 *code-workspace
