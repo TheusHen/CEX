@@ -4,7 +4,7 @@ from flask import Flask, jsonify, Blueprint, request
 from dotenv import load_dotenv
 from flask_cors import CORS, cross_origin
 from utils.supabase import supabase, raise_when_api_error
-from datetime import datetime
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -25,13 +25,7 @@ def get_feedback(iata):
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid IATA code"}), 400
 
-    response = (
-        supabase.table("airport_feedback")
-        .select("*")
-        .eq("iata", iata)
-        .single()
-        .execute()
-    )
+    response = supabase.table("airport_feedback").select("*").eq("iata", iata).limit(1).execute()
     try:
         raise_when_api_error(response)
     except Exception:
@@ -40,7 +34,12 @@ def get_feedback(iata):
     if not response.data:
         return jsonify({"iata": iata, "positive": 0, "negative": 0})
 
-    return jsonify(response.data)
+    row = response.data[0]
+    return jsonify({
+        "iata": iata,
+        "positive": row.get("positive", 0),
+        "negative": row.get("negative", 0)
+    })
 
 @feedback_bp.route("/feedback/<string:iata>", methods=["POST"])
 @cross_origin(origins="https://cex.theushen.me")
@@ -51,18 +50,19 @@ def post_feedback(iata):
 
     data = request.get_json()
     if not data or ("positive" not in data and "negative" not in data):
-        return jsonify({"error": "Missing positive/negative field."}), 400
+        return jsonify({"error": "Field positive/negative is required."}), 400
 
-    sel = supabase.table("airport_feedback").select("*").eq("iata", iata).single().execute()
+    sel = supabase.table("airport_feedback").select("*").eq("iata", iata).limit(1).execute()
     if sel.data:
-        positive = sel.data.get("positive", 0) + (1 if data.get("positive") else 0)
-        negative = sel.data.get("negative", 0) + (1 if data.get("negative") else 0)
+        row = sel.data[0]
+        positive = row.get("positive", 0) + (1 if data.get("positive") else 0)
+        negative = row.get("negative", 0) + (1 if data.get("negative") else 0)
         upd = (
             supabase.table("airport_feedback")
             .update({
                 "positive": positive,
                 "negative": negative,
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat()
             })
             .eq("iata", iata)
             .execute()
@@ -71,11 +71,6 @@ def post_feedback(iata):
             raise_when_api_error(upd)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        # upd.data pode ser uma lista ou dict, tente pegar o atualizado
-        if upd.data and isinstance(upd.data, list) and len(upd.data) > 0:
-            return jsonify(upd.data[0])
-        elif upd.data and isinstance(upd.data, dict):
-            return jsonify(upd.data)
         return jsonify({"iata": iata, "positive": positive, "negative": negative})
     else:
         ins = (
@@ -83,7 +78,8 @@ def post_feedback(iata):
             .insert({
                 "iata": iata,
                 "positive": 1 if data.get("positive") else 0,
-                "negative": 1 if data.get("negative") else 0,
+                "negative": 1 if data.get("negative") else 0
+                # Removed "created_at" as it does not exist in the table schema
             })
             .execute()
         )
@@ -91,11 +87,11 @@ def post_feedback(iata):
             raise_when_api_error(ins)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        if ins.data and isinstance(ins.data, list) and len(ins.data) > 0:
-            return jsonify(ins.data[0])
-        elif ins.data and isinstance(ins.data, dict):
-            return jsonify(ins.data)
-        return jsonify({"iata": iata, "positive": 1 if data.get("positive") else 0, "negative": 1 if data.get("negative") else 0})
+        return jsonify({
+            "iata": iata,
+            "positive": 1 if data.get("positive") else 0,
+            "negative": 1 if data.get("negative") else 0
+        })
 
 @cex_bp.route("/airports", methods=["GET"])
 def get_airports():
@@ -156,7 +152,7 @@ def search_airports_by_name(name):
     return jsonify(response.data)
 
 @cex_bp.route("/airports/cex/above/<float:value>", methods=["GET"])
-def get_airports_cex_above_value(value):
+def get_airports_cex_acima(value):
     response = (
         supabase.table("airports_cex")
         .select("*")
@@ -171,7 +167,7 @@ def get_airports_cex_above_value(value):
     return jsonify(response.data)
 
 @cex_bp.route("/airports/cex/below/<float:value>", methods=["GET"])
-def get_airports_cex_below_value(value):
+def get_airports_cex_abaixo(value):
     response = (
         supabase.table("airports_cex")
         .select("*")
@@ -190,7 +186,7 @@ def get_airports_cex_below_value(value):
 def create_cex():
     data = request.get_json()
     if not data:
-        return jsonify({"error": "Missing or invalid JSON payload."}), 400
+        return jsonify({"error": "Invalid JSON."}), 400
 
     iata = data.get("iata", "").strip().upper()
     if not re.match(r"^[A-Z]{3}$", iata):
@@ -217,7 +213,7 @@ def create_cex():
 def get_airport_by_iata_query():
     iata = request.args.get("iata", "").strip().upper()
     if not re.match(r"^[A-Z]{3}$", iata):
-        return jsonify({"error": "Missing or invalid 'iata' parameter."}), 400
+        return jsonify({"error": "Invalid 'iata' parameter."}), 400
 
     response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
     try:
