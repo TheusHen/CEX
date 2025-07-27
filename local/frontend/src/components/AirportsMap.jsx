@@ -1,29 +1,10 @@
-"use client";
-
 import React, { useEffect, useState, useRef, useMemo } from "react";
-import * as Papa from "papaparse";
+import Papa from "papaparse";
 import { supabase } from "../utils/supabase";
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-// SSR/Client detection
-const isClient = typeof window !== "undefined";
-
-// --- move leaflet imports inside component to avoid SSR crash ---
-let MapContainer: any, TileLayer: any, CircleMarker: any, Popup: any, Tooltip: any, useMapEvents: any;
-if (isClient) {
-  // Only import leaflet/react-leaflet on client
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const leaflet = require("react-leaflet");
-  MapContainer = leaflet.MapContainer;
-  TileLayer = leaflet.TileLayer;
-  CircleMarker = leaflet.CircleMarker;
-  Popup = leaflet.Popup;
-  Tooltip = leaflet.Tooltip;
-  useMapEvents = leaflet.useMapEvents;
-  require("leaflet/dist/leaflet.css");
-}
-
-// ---- AI and CEX EVAL ----
-const AI_PROMPT = (airport: string, iata: string) => `
+const AI_PROMPT = (airport, iata) => `
 You are a specialist airport evaluator. Based on the data, images, descriptions, or reports provided about the airport below, extract and estimate the following 12 objective and subjective criteria. The values should range from 0 to 10, with 10 being the best possible score.
 
 Airport: ${airport} (IATA Code: ${iata})
@@ -31,21 +12,18 @@ Airport: ${airport} (IATA Code: ${iata})
 Evaluate:
 
 **Comfort (C)**
-
 1. Sp — Average personal space per passenger (m²)
 2. Ac — Accessibility of seating (relative quantity per m²)
 3. Da — Average distance to the boarding gate
 4. Zl — Quality of leisure and waiting areas
 
 **Efficiency (E)**
-
 5. To — Average check-in and boarding time
 6. Ng — Number of operating counters
 7. Rt — On-time flight regularity
 8. Pm — Accuracy of monitors and information panels
 
 **Aesthetics (X)**
-
 9. Va — Internal visibility and spatial amplitude
 10. Id — Integration with the local urban design
 11. Sc — Signage and visual clarity
@@ -73,30 +51,6 @@ Expected response format (only values between 0 and 10, with one decimal place):
 Only estimate the values based on the provided information. Do not generate explanations.
 `;
 
-type AirportCex = {
-  id: string;
-  iata: string;
-  airport: string;
-  comfort: number | null;
-  efficiency: number | null;
-  aesthetics: number | null;
-  cex: number | null;
-  created_at: string;
-};
-
-type Airport = {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  iata_code: string;
-  cexNotes?: AirportCex[];
-};
-
-const ZOOM_LABELS = 7;
-const ZOOM_USER = 10;
-
-// --- Settings Modal ---
 const API_OPTIONS = [
   {
     label: "ChatGPT (gpt-3.5-turbo)",
@@ -112,7 +66,6 @@ const API_OPTIONS = [
 
 function getSavedAPIConfig() {
   try {
-    if (!isClient) return null;
     const saved = localStorage.getItem("cex_api_config");
     if (!saved) return null;
     return JSON.parse(saved);
@@ -121,8 +74,7 @@ function getSavedAPIConfig() {
   }
 }
 
-function saveAPIConfig(apiType: string, apiKey: string) {
-  if (!isClient) return;
+function saveAPIConfig(apiType, apiKey) {
   localStorage.setItem(
     "cex_api_config",
     JSON.stringify({ apiType, apiKey })
@@ -135,12 +87,6 @@ function SettingsModal({
   currentApiKey,
   onClose,
   onSave,
-}: {
-  isOpen: boolean;
-  currentApiType: string;
-  currentApiKey: string;
-  onClose: () => void;
-  onSave: (apiType: string, apiKey: string) => void;
 }) {
   const [apiType, setApiType] = useState(currentApiType || "");
   const [apiKey, setApiKey] = useState(currentApiKey || "");
@@ -231,8 +177,6 @@ function SettingsModal({
   );
 }
 
-// --- End Settings Modal ---
-
 function AirportsMarkers({
   airports,
   bounds,
@@ -240,17 +184,10 @@ function AirportsMarkers({
   onFetchCex,
   onEvaluateAirport,
   evaluatingId,
-}: {
-  airports: Airport[];
-  bounds: [[number, number], [number, number]] | null;
-  zoom: number;
-  onFetchCex: (iata_code: string) => Promise<AirportCex[]>;
-  onEvaluateAirport: (airport: Airport) => void;
-  evaluatingId: string | null;
 }) {
-  const [notesMap, setNotesMap] = useState<Record<string, AirportCex[]>>({});
+  const [notesMap, setNotesMap] = useState({});
 
-  function handlePopupOpen(iata: string) {
+  function handlePopupOpen(iata) {
     if (!iata || notesMap[iata]) return;
     onFetchCex(iata).then(notes => {
       setNotesMap(prev => ({ ...prev, [iata]: notes }));
@@ -293,7 +230,7 @@ function AirportsMarkers({
             <br />
             {notesMap[airport.iata_code]?.length ? (
               <div style={{ marginTop: 8 }}>
-                <b>Previous notes:</b>
+                <b>Previous scores:</b>
                 <ul>
                   {notesMap[airport.iata_code].map(note => (
                     <li key={note.id}>
@@ -304,9 +241,9 @@ function AirportsMarkers({
                 </ul>
               </div>
             ) : notesMap[airport.iata_code] ? (
-              <span style={{ color: "#888" }}>No notes found.</span>
+              <span style={{ color: "#888" }}>No scores found.</span>
             ) : (
-              <span style={{ color: "#888" }}>Loading notes...</span>
+              <span style={{ color: "#888" }}>Loading scores...</span>
             )}
             <div className="mt-4 flex items-center">
               <button
@@ -320,7 +257,7 @@ function AirportsMarkers({
               </button>
             </div>
           </Popup>
-          {zoom >= ZOOM_LABELS && (
+          {zoom >= 7 && (
             <Tooltip direction="top" offset={[0, -15]} permanent>
               <b>{airport.iata_code}</b> - {airport.name}
             </Tooltip>
@@ -336,13 +273,7 @@ function MapEvents({
   setZoom,
   userLocation,
   flyToUser
-}: {
-  setBounds: (b: [[number, number], [number, number]]) => void;
-  setZoom: (z: number) => void;
-  userLocation: [number, number] | null;
-  flyToUser: boolean;
 }) {
-  // Always call hook at top level
   const map = useMapEvents({
     moveend: () => {
       const b = map.getBounds();
@@ -367,7 +298,7 @@ function MapEvents({
   const hasFlew = useRef(false);
   useEffect(() => {
     if (userLocation && flyToUser && !hasFlew.current && map && map.flyTo) {
-      map.flyTo(userLocation, ZOOM_USER, { duration: 1.5 });
+      map.flyTo(userLocation, 10, { duration: 1.5 });
       hasFlew.current = true;
     }
   }, [userLocation, flyToUser, map]);
@@ -375,26 +306,17 @@ function MapEvents({
   return null;
 }
 
-// --- AI Evaluation logic ---
 async function aiEvaluateAirport(
-  airport: Airport,
-  apiType: string,
-  apiKey: string
-): Promise<{
-  success: boolean;
-  response?: Record<string, unknown>;
-  error?: string;
-}> {
-  // 1. Compose prompt
+  airport,
+  apiType,
+  apiKey
+) {
   const prompt = AI_PROMPT(airport.name, airport.iata_code);
-
-  // 2. Call the corresponding AI API
-  let aiResponse: string | null = null;
-  let aiError: string | undefined;
+  let aiResponse = null;
+  let aiError;
 
   try {
     if (apiType === "openai") {
-      // OpenAI API
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -418,7 +340,6 @@ async function aiEvaluateAirport(
         aiError = "No response from OpenAI API";
       }
     } else if (apiType === "gemini") {
-      // Gemini API (Google)
       const res = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
           apiKey,
@@ -449,24 +370,22 @@ async function aiEvaluateAirport(
         aiError = "No response from Gemini API";
       }
     } else {
-      aiError = "No API model selected or invalid key";
+      aiError = "No model selected or invalid key";
     }
   } catch (err) {
-    aiError = "Failed to contact AI API: " + String(err);
+    aiError = "Failed to contact API: " + String(err);
   }
 
   if (aiError) return { success: false, error: aiError };
 
-  // 3. Try to extract JSON from code block or raw text
-  let json: Record<string, unknown> | null = null;
+  let json = null;
   const regex =
     /```json\s*([\s\S]+?)```/i;
-  const match = aiResponse!.match(regex);
-  let jsonText = match ? match[1] : aiResponse!;
+  const match = aiResponse.match(regex);
+  let jsonText = match ? match[1] : aiResponse;
   try {
     json = JSON.parse(jsonText);
   } catch {
-    // Try to clean up and parse again
     try {
       jsonText = jsonText
         .replace(/^[^{]*{/s, "{")
@@ -476,8 +395,6 @@ async function aiEvaluateAirport(
       return { success: false, error: "Failed to parse AI response as JSON." };
     }
   }
-
-  // 4. Send to backend API
   try {
     const payload = {
       ...json,
@@ -502,51 +419,40 @@ async function aiEvaluateAirport(
   }
 }
 
-// ----------- MAIN COMPONENT -----------
 export default function AirportsMap({
   onProgressUpdate,
   onLoaded,
-}: {
-  onProgressUpdate?: (p: number) => void;
-  onLoaded?: () => void;
 }) {
-  const [airports, setAirports] = useState<Airport[]>([]);
+  const [airports, setAirports] = useState([]);
   const [loaded, setLoaded] = useState(false);
-
-  const [center, setCenter] = useState<[number, number] | null>(null);
+  const [center, setCenter] = useState(null);
   const [zoom, setZoom] = useState(3);
-  const [bounds, setBounds] = useState<[[number, number], [number, number]] | null>(null);
-
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [bounds, setBounds] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const [flyToUser, setFlyToUser] = useState(false);
 
-  // --- Settings state ---
   const [showSettings, setShowSettings] = useState(false);
   const [currentApiType, setCurrentApiType] = useState("");
   const [currentApiKey, setCurrentApiKey] = useState("");
-
-  // --- Evaluation state ---
-  const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
-  const [evalResult, setEvalResult] = useState<Record<string, unknown> | null>(null);
-  const [evalError, setEvalError] = useState<string | null>(null);
+  const [evaluatingId, setEvaluatingId] = useState(null);
+  const [evalResult, setEvalResult] = useState(null);
+  const [evalError, setEvalError] = useState(null);
 
   useEffect(() => {
-    if (!isClient) return;
     setCenter([-15, -50]);
     setZoom(3);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          const c = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(c);
           setFlyToUser(true);
           setCenter(c);
-          setZoom(ZOOM_USER);
+          setZoom(10);
         },
         () => {}
       );
     }
-    // Load API config
     const saved = getSavedAPIConfig();
     if (saved && saved.apiType && saved.apiKey) {
       setCurrentApiType(saved.apiType);
@@ -554,25 +460,23 @@ export default function AirportsMap({
     }
   }, []);
 
-  // Update local state when settings are saved
-  function handleSettingsSave(apiType: string, apiKey: string) {
+  function handleSettingsSave(apiType, apiKey) {
     setCurrentApiType(apiType);
     setCurrentApiKey(apiKey);
     saveAPIConfig(apiType, apiKey);
   }
 
   useEffect(() => {
-    if (!isClient) return;
     let isMounted = true;
     async function fetchAirports() {
-      return new Promise<Airport[]>((resolve, reject) => {
-        const airports: Airport[] = [];
+      return new Promise((resolve, reject) => {
+        const airports = [];
         let processedRows = 0;
         Papa.parse("/assets/airports.csv", {
           download: true,
           header: true,
           step: (results) => {
-            const a = results.data as Record<string, unknown>;
+            const a = results.data;
             if (
               a.latitude_deg &&
               a.longitude_deg &&
@@ -581,11 +485,11 @@ export default function AirportsMap({
               a.iata_code.length === 3
             ) {
               airports.push({
-                id: a.id as string,
-                name: a.name as string,
-                latitude: parseFloat(a.latitude_deg as string),
-                longitude: parseFloat(a.longitude_deg as string),
-                iata_code: a.iata_code as string,
+                id: a.id,
+                name: a.name,
+                latitude: parseFloat(a.latitude_deg),
+                longitude: parseFloat(a.longitude_deg),
+                iata_code: a.iata_code,
               });
             }
             processedRows++;
@@ -614,7 +518,7 @@ export default function AirportsMap({
     };
   }, [onProgressUpdate, onLoaded]);
 
-  async function fetchAirportCex(iata_code: string): Promise<AirportCex[]> {
+  async function fetchAirportCex(iata_code) {
     const { data, error } = await supabase
       .from("airports_cex")
       .select("*")
@@ -623,10 +527,10 @@ export default function AirportsMap({
     if (error) {
       return [];
     }
-    return data as AirportCex[];
+    return data;
   }
 
-  async function handleEvaluateAirport(airport: Airport) {
+  async function handleEvaluateAirport(airport) {
     setEvaluatingId(airport.id);
     setEvalResult(null);
     setEvalError(null);
@@ -656,7 +560,6 @@ export default function AirportsMap({
     setEvaluatingId(null);
   }
 
-  // --- Evaluation Modal ---
   function EvaluationModal() {
     if (!evalResult && !evalError) return null;
     return (
@@ -683,20 +586,35 @@ export default function AirportsMap({
           {evalResult && (
             <div>
               <div className="mb-2 text-indigo-100 text-sm">
-                <b>{evalResult.airport}</b> {(evalResult as Record<string, unknown>).IATA ? `(${(evalResult as Record<string, unknown>).IATA})` : (evalResult as Record<string, unknown>).iata ? `(${(evalResult as Record<string, unknown>).iata})` : null}
+                <b>{String(evalResult.airport)}</b>
+                {evalResult.iata && (
+                  <> ({String(evalResult.iata)})</>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <div>
-                  <b>CEX Score:</b> <span className="text-indigo-200">{(evalResult as Record<string, unknown>).CEX}</span>
+                  <b>CEX Score:</b>{" "}
+                  <span className="text-indigo-200">
+                    {String(evalResult.CEX ?? "")}
+                  </span>
                 </div>
                 <div>
-                  <b>Comfort (C):</b> <span className="text-indigo-200">{(evalResult as Record<string, unknown>).C}</span>
+                  <b>Comfort (C):</b>{" "}
+                  <span className="text-indigo-200">
+                    {String(evalResult.C ?? "")}
+                  </span>
                 </div>
                 <div>
-                  <b>Efficiency (E):</b> <span className="text-indigo-200">{(evalResult as Record<string, unknown>).E}</span>
+                  <b>Efficiency (E):</b>{" "}
+                  <span className="text-indigo-200">
+                    {String(evalResult.E ?? "")}
+                  </span>
                 </div>
                 <div>
-                  <b>Aesthetics (X):</b> <span className="text-indigo-200">{(evalResult as Record<string, unknown>).X}</span>
+                  <b>Aesthetics (X):</b>{" "}
+                  <span className="text-indigo-200">
+                    {String(evalResult.X ?? "")}
+                  </span>
                 </div>
               </div>
               <div className="mt-4">
@@ -712,11 +630,10 @@ export default function AirportsMap({
     );
   }
 
-  if (!center || !isClient) return null;
+  if (!center) return null;
 
   return (
     <div className="w-full h-screen relative">
-      {/* Settings icon & modal (right) */}
       <button
         className="absolute top-3 right-3 z-[1001] bg-white/30 hover:bg-white/40 backdrop-blur-lg p-2 rounded-full border border-indigo-600 shadow transition flex items-center group"
         onClick={() => setShowSettings(true)}
@@ -730,7 +647,6 @@ export default function AirportsMap({
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" strokeWidth="2" />
         </svg>
       </button>
-      {/* Floating API info (right, below settings button) */}
       <div className="absolute top-3 right-16 z-[1000] flex items-center space-x-2 bg-white/20 backdrop-blur-lg px-3 py-1 rounded-full border border-indigo-300 text-xs text-indigo-900 shadow transition select-none max-w-[60vw]">
         <span className="font-semibold">API:</span>
         <span>
@@ -752,40 +668,36 @@ export default function AirportsMap({
         onSave={handleSettingsSave}
       />
       <EvaluationModal />
-      {/* Map */}
-      {isClient && MapContainer && (
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          minZoom={2}
-          maxZoom={12}
-          style={{ width: "100%", height: "100vh" }}
-          scrollWheelZoom
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        minZoom={2}
+        maxZoom={12}
+        style={{ width: "100%", height: "100vh" }}
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {loaded && (
+          <AirportsMarkers
+            airports={airports}
+            bounds={bounds}
+            zoom={zoom}
+            onFetchCex={fetchAirportCex}
+            onEvaluateAirport={handleEvaluateAirport}
+            evaluatingId={evaluatingId}
           />
-          {loaded && (
-            <AirportsMarkers
-              airports={airports}
-              bounds={bounds}
-              zoom={zoom}
-              onFetchCex={fetchAirportCex}
-              onEvaluateAirport={handleEvaluateAirport}
-              evaluatingId={evaluatingId}
-            />
-          )}
-          <MapEvents
-            setBounds={setBounds}
-            setZoom={setZoom}
-            userLocation={userLocation}
-            flyToUser={flyToUser}
-          />
-        </MapContainer>
-      )}
-      {/* Animations for modal */}
-      <style jsx global>{`
+        )}
+        <MapEvents
+          setBounds={setBounds}
+          setZoom={setZoom}
+          userLocation={userLocation}
+          flyToUser={flyToUser}
+        />
+      </MapContainer>
+      <style>{`
         @keyframes fade-in {
           from { opacity: 0 }
           to { opacity: 1 }
