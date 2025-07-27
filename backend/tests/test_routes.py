@@ -27,12 +27,12 @@ def test_get_airport(client, mocker):
             )
         )
     ))
-    resp = client.get("/api/airport/1")
+    resp = client.get("/api/airports/1")  # Corrigido endpoint
     assert resp.status_code == 200
     assert "airport_id" in resp.json
 
 def test_search_airports_empty(client):
-    resp = client.get("/api/search?q=")
+    resp = client.get("/api/airports/search/")  # Corrigido endpoint para search
     assert resp.status_code == 200
     assert resp.json == []
 
@@ -40,3 +40,4 @@ def test_create_cex_no_json(client):
     resp = client.post("/api/cex", data="notjson", content_type="application/json")
     assert resp.status_code == 400
     assert "error" in resp.json
+
