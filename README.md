@@ -46,15 +46,9 @@ The system consists of three main layers:
 * Integration with Supabase database (managed PostgreSQL)
 * Map with evaluated airports
 
-Coming soon: 
-* Colored pins according to the CEX score
-* Dynamic page for each airport:
-
-  * Graphs of indices (C, E, X)
-  * Evaluation history
-  * Feedback system (👍 / 👎)
-* Ranking of the best-rated airports
-* Filters by date, score, IATA code, etc.
+* Colored pins according to avaliable notes or not (Green: Avaliable)
+* Feedback system (👍 / 👎)
+* Filters by date, score, IATA code, etc. (With API)
 
 ---
 
