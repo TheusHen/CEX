@@ -1,52 +1,65 @@
 import os
+import re
 from flask import Flask, jsonify, Blueprint, request
 from dotenv import load_dotenv
+from flask_cors import CORS, cross_origin
 from utils.supabase import supabase, raise_when_api_error
 
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
+
+cex_bp = Blueprint("cex", __name__)
+feedback_bp = Blueprint("feedback", __name__)
 
 @app.route("/")
 def root():
     return jsonify({"online": True})
 
-cex_bp = Blueprint("cex", __name__)
-feedback_bp = Blueprint("feedback", __name__)
-
 @feedback_bp.route("/feedback/<string:iata>", methods=["GET"])
+@cross_origin(origins="https://cex.theushen.me")
 def get_feedback(iata):
+    iata = iata.strip().upper()
+    if not re.match(r"^[A-Z]{3}$", iata):
+        return jsonify({"error": "Invalid IATA code"}), 400
+
     response = (
         supabase.table("airport_feedback")
         .select("*")
-        .eq("iata", iata.upper())
+        .eq("iata", iata)
         .single()
         .execute()
     )
     try:
         raise_when_api_error(response)
-    except Exception as e:
-        # If not found, return default zeros
+    except Exception:
         return jsonify({"iata": iata, "positive": 0, "negative": 0})
-    # If response has no data, also return zeros
+
     if not response.data:
         return jsonify({"iata": iata, "positive": 0, "negative": 0})
+
     return jsonify(response.data)
 
 @feedback_bp.route("/feedback/<string:iata>", methods=["POST"])
+@cross_origin(origins="https://cex.theushen.me")
 def post_feedback(iata):
+    iata = iata.strip().upper()
+    if not re.match(r"^[A-Z]{3}$", iata):
+        return jsonify({"error": "Invalid IATA code"}), 400
+
     data = request.get_json()
     if not data or ("positive" not in data and "negative" not in data):
         return jsonify({"error": "Missing positive/negative field."}), 400
 
-    sel = supabase.table("airport_feedback").select("*").eq("iata", iata.upper()).single().execute()
+    sel = supabase.table("airport_feedback").select("*").eq("iata", iata).single().execute()
     if sel.data:
         positive = sel.data.get("positive", 0) + (1 if data.get("positive") else 0)
         negative = sel.data.get("negative", 0) + (1 if data.get("negative") else 0)
         upd = (
             supabase.table("airport_feedback")
             .update({"positive": positive, "negative": negative, "updated_at": "now()"})
-            .eq("iata", iata.upper())
+            .eq("iata", iata)
             .execute()
         )
         try:
@@ -58,7 +71,7 @@ def post_feedback(iata):
         ins = (
             supabase.table("airport_feedback")
             .insert({
-                "iata": iata.upper(),
+                "iata": iata,
                 "positive": 1 if data.get("positive") else 0,
                 "negative": 1 if data.get("negative") else 0,
             })
@@ -81,7 +94,11 @@ def get_airports():
 
 @cex_bp.route("/airports/<string:iata>", methods=["GET"])
 def get_airport_by_iata_param(iata):
-    response = supabase.table("airports_cex").select("*").eq("iata", iata.upper()).single().execute()
+    iata = iata.strip().upper()
+    if not re.match(r"^[A-Z]{3}$", iata):
+        return jsonify({"error": "Invalid IATA code"}), 400
+
+    response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
     try:
         raise_when_api_error(response)
     except Exception as e:
@@ -155,13 +172,16 @@ def get_airports_cex_below_value(value):
     return jsonify(response.data)
 
 @cex_bp.route("/cex", methods=["POST"])
+@cross_origin(origins="https://cex.theushen.me")
 def create_cex():
     data = request.get_json()
-
     if not data:
         return jsonify({"error": "Missing or invalid JSON payload."}), 400
 
-    iata = data.get("iata", "").upper()
+    iata = data.get("iata", "").strip().upper()
+    if not re.match(r"^[A-Z]{3}$", iata):
+        return jsonify({"error": "Invalid IATA code"}), 400
+
     exists = supabase.table("airports_cex").select("id").eq("iata", iata).single().execute()
     if exists.data:
         upd = supabase.table("airports_cex").update(data).eq("iata", iata).execute()
@@ -169,7 +189,7 @@ def create_cex():
             raise_when_api_error(upd)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        del_fb = supabase.table("airport_feedback").delete().eq("iata", iata).execute()
+        supabase.table("airport_feedback").delete().eq("iata", iata).execute()
         return jsonify(upd.data)
     else:
         ins = supabase.table("airports_cex").insert(data).execute()
@@ -182,8 +202,8 @@ def create_cex():
 @cex_bp.route("/airport_cex", methods=["GET"])
 def get_airport_by_iata_query():
     iata = request.args.get("iata", "").strip().upper()
-    if not iata:
-        return jsonify({"error": "Missing 'iata' parameter."}), 400
+    if not re.match(r"^[A-Z]{3}$", iata):
+        return jsonify({"error": "Missing or invalid 'iata' parameter."}), 400
 
     response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
     try:
@@ -196,7 +216,6 @@ def get_airport_by_iata_query():
 app.register_blueprint(cex_bp, url_prefix="/api")
 app.register_blueprint(feedback_bp, url_prefix="")
 
-# Vercel compatibility
 if __name__ != "__main__":
     app = app
 else:
