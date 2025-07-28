@@ -64,8 +64,9 @@ const API_OPTIONS = [
 ];
 
 function getSavedAPIConfig() {
+  if (typeof window === "undefined") return null;
   try {
-    const saved = localStorage.getItem("cex_api_config");
+    const saved = window.localStorage.getItem("cex_api_config");
     if (!saved) return null;
     return JSON.parse(saved);
   } catch {
@@ -74,7 +75,8 @@ function getSavedAPIConfig() {
 }
 
 function saveAPIConfig(apiType: string, apiKey: string) {
-  localStorage.setItem(
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
     "cex_api_config",
     JSON.stringify({ apiType, apiKey })
   );
@@ -92,11 +94,13 @@ export default function CEXLoader() {
   const apiInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const saved = getSavedAPIConfig();
-    if (saved && saved.apiType && saved.apiKey) {
-      setApiType(saved.apiType);
-      setApiKey(saved.apiKey);
-      setApiKeySubmitted(true);
+    if (typeof window !== "undefined") {
+      const saved = getSavedAPIConfig();
+      if (saved && saved.apiType && saved.apiKey) {
+        setApiType(saved.apiType);
+        setApiKey(saved.apiKey);
+        setApiKeySubmitted(true);
+      }
     }
   }, []);
 
