@@ -94,6 +94,7 @@ export default function CEXLoader() {
   const apiInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    // Recuperar config apenas client-side
     if (typeof window !== "undefined") {
       const saved = getSavedAPIConfig();
       if (saved && saved.apiType && saved.apiKey) {
@@ -148,7 +149,6 @@ export default function CEXLoader() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-950 via-black to-indigo-950 flex flex-col items-center justify-center overflow-x-hidden">
-      {/* Overlay for API selection if not configured */}
       {!apiConfigReady && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 px-1 sm:px-2 transition-all duration-300">
           <div
@@ -217,7 +217,6 @@ export default function CEXLoader() {
                 );
               })}
             </div>
-            {/* Show warning if ChatGPT is selected */}
             {selectedApiOption && selectedApiOption.warning && (
               <div className="w-full">
                 {selectedApiOption.warning}

@@ -91,6 +91,7 @@ const API_OPTIONS = [
 ];
 
 function getSavedAPIConfig(): { apiType: APIType; apiKey: string } | null {
+  // Garantir que só acesse window no client-side
   if (typeof window === "undefined") return null;
   try {
     const saved = window.localStorage.getItem("cex_api_config");
@@ -257,7 +258,7 @@ function AirportsMarkers({
         <CircleMarker
           key={airport.id}
           center={[airport.latitude, airport.longitude]}
-          radius={5} // 'radius' is valid prop for CircleMarker
+          radius={5}
           pathOptions={{
             color: "#0ff",
             fillColor: "#0ff",
@@ -304,9 +305,6 @@ function AirportsMarkers({
             </div>
           </Popup>
           {zoom >= 7 && (
-            // TooltipProps does not have 'direction' or 'offset' in some old typings,
-            // but they are valid props per react-leaflet docs.
-            // If TS error, update @types/react-leaflet.
             <Tooltip direction="top" offset={[0, -15]} permanent>
               <b>{airport.iata_code}</b> - {airport.name}
             </Tooltip>
@@ -536,6 +534,10 @@ export default function AirportsMap({
         () => {}
       );
     }
+  }, []);
+
+  useEffect(() => {
+    // Recuperar API config apenas no client-side
     if (typeof window !== "undefined") {
       const saved = getSavedAPIConfig();
       if (saved && saved.apiType && saved.apiKey) {
@@ -719,7 +721,6 @@ export default function AirportsMap({
 
   return (
     <div className="w-full h-screen relative">
-      {/* Header with Go Back button */}
       <header
         className="w-full flex items-center px-6 py-2 relative z-[1002]"
         style={{
@@ -789,7 +790,7 @@ export default function AirportsMap({
           minZoom={2}
           maxZoom={12}
           style={{ width: "100%", height: "calc(100vh - 56px)" }}
-          scrollWheelZoom={true} // explicit boolean for scrollWheelZoom
+          scrollWheelZoom={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
