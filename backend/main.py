@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from flask_cors import CORS, cross_origin
 from utils.supabase import supabase, raise_when_api_error
 from datetime import datetime, timezone
+import threading
+import logging
+import json
 
 load_dotenv()
 
@@ -13,6 +16,14 @@ CORS(app)
 
 cex_bp = Blueprint("cex", __name__)
 feedback_bp = Blueprint("feedback", __name__)
+
+# Default weights
+wC, wE, wX = 1, 1, 1
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
 
 @app.route("/")
 def root():
@@ -182,7 +193,6 @@ def get_airports_cex_abaixo(value):
     return jsonify(response.data)
 
 @cex_bp.route("/cex", methods=["POST"])
-@cross_origin(origins="https://cex.theushen.me")
 def create_cex():
     data = request.get_json()
     if not data:
@@ -192,8 +202,16 @@ def create_cex():
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid IATA code"}), 400
 
-    exists = supabase.table("airports_cex").select("id").eq("iata", iata).single().execute()
-    if exists.data:
+    try:
+        exists = supabase.table("airports_cex").select("id").eq("iata", iata).single().execute()
+        row_exists = True
+    except Exception as e:
+        if "0 rows" in str(e) or "PGRST116" in str(e):
+            row_exists = False
+        else:
+            return jsonify({"error": str(e)}), 500
+
+    if row_exists:
         upd = supabase.table("airports_cex").update(data).eq("iata", iata).execute()
         try:
             raise_when_api_error(upd)
@@ -215,13 +233,71 @@ def get_airport_by_iata_query():
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid 'iata' parameter."}), 400
 
-    response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
     try:
-        raise_when_api_error(response)
+        response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
+        if not response.data:
+            return jsonify({}), 200
+        return jsonify(response.data)
     except Exception as e:
+        if "0 rows" in str(e) or "PGRST116" in str(e):
+            return jsonify({}), 200
         return jsonify({"error": str(e)}), 500
 
-    return jsonify(response.data)
+@app.route('/calculate_cex', methods=['POST'])
+def calculate_cex():
+    data = request.get_json()
+
+    try:
+        # Validate required fields
+        required_fields = [
+            'Sp', 'Ac', 'Da', 'Zl', 'To', 'Ng', 'Rt', 'Pm',
+            'Va', 'Id', 'Sc', 'Lu', 'iata', 'airport'
+        ]
+        for field in required_fields:
+            if field not in data:
+                logging.warning(f"Missing field: {field}")
+                raise KeyError(field)
+
+        # Validate numeric fields
+        numeric_fields = [
+            'Sp', 'Ac', 'Da', 'Zl', 'To', 'Ng', 'Rt', 'Pm',
+            'Va', 'Id', 'Sc', 'Lu'
+        ]
+        for field in numeric_fields:
+            value = data[field]
+            if not isinstance(value, (int, float)):
+                logging.warning(f"Field {field} is not a number: {value}")
+                return jsonify({"error": f"Field {field} must be a number"}), 400
+
+        # Comfort (C)
+        C = (data['Sp'] + data['Ac'] + data['Da'] + data['Zl']) / 4
+
+        # Efficiency (E)
+        E = (data['To'] + data['Ng'] + data['Rt'] + data['Pm']) / 4
+
+        # Aesthetics (X)
+        X = (data['Va'] + data['Id'] + data['Sc'] + data['Lu']) / 4
+
+        # Final CEX calculation
+        CEX = (wC * C + wE * E + wX * X) / (wC + wE + wX)
+
+        result = {
+            "IATA": data['iata'],
+            "Airport": data['airport'],
+            "C": round(C, 2),
+            "E": round(E, 2),
+            "X": round(X, 2),
+            "CEX": round(CEX, 2)
+        }
+
+        return jsonify(result), 200
+
+    except KeyError as e:
+        logging.error(f"Missing field in payload: {str(e)}")
+        return jsonify({"error": f"Missing field: {str(e)}"}), 400
+    except Exception as e:
+        logging.error(f"Unhandled exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 app.register_blueprint(cex_bp, url_prefix="/api")
 app.register_blueprint(feedback_bp, url_prefix="")

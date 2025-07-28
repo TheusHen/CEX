@@ -1,7 +1,0 @@
-pywebview
-flask
-requests
-flask-cors
-qtpy
-PyQt5
-PyQtWebEngine

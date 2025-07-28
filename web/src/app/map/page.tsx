@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import * as Papa from "papaparse";
 import Link from "next/link";
-import { LuMapPin } from "react-icons/lu";
+import { LuMapPin, LuSparkles } from "react-icons/lu";
 import { Russo_One, Inter } from "next/font/google";
 
 // Fonts
@@ -86,28 +86,77 @@ function MapHeader() {
         >
             {/* Top Bar: Go Back + Central Info + Logo */}
             <div
-                className="w-full flex items-center justify-between px-6 py-2"
-                style={{ minHeight: 40, width: "100%" }}
+                className="w-full flex flex-wrap items-center justify-between px-4 py-2"
+                style={{
+                    minHeight: 40,
+                    width: "100%",
+                    gap: 8,
+                }}
             >
-                {/* Left: Back Arrow and Go Back */}
-                <Link
-                    href="/"
-                    className="flex items-center gap-2 text-white text-base group"
-                    style={{ minWidth: 0, whiteSpace: "nowrap" }}
-                >
-                    <svg
-                        width={28}
-                        height={28}
-                        viewBox="0 0 28 28"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="transition-transform group-hover:-translate-x-1"
-                        style={{ display: "inline", verticalAlign: "middle" }}
+                {/* Left: Back Arrow and Go Back + Make AI Notes (desktop) */}
+                <div className="flex items-center gap-4 sm:gap-8" style={{ flex: 1 }}>
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 text-white text-base group"
+                        style={{ minWidth: 0, whiteSpace: "nowrap" }}
                     >
-                        <path d="M18 24L8 14L18 4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span style={{ fontFamily: "inherit", fontWeight: 400, verticalAlign: "middle" }}>Go Back</span>
-                </Link>
+                        <svg
+                            width={28}
+                            height={28}
+                            viewBox="0 0 28 28"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="transition-transform group-hover:-translate-x-1"
+                            style={{ display: "inline", verticalAlign: "middle" }}
+                        >
+                            <path d="M18 24L8 14L18 4" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span style={{ fontFamily: "inherit", fontWeight: 400, verticalAlign: "middle" }}>Go Back</span>
+                    </Link>
+                    {/* Desktop: Make AI Notes ao lado do Go Back */}
+                    <div className="hidden sm:flex">
+                        <Link
+                            href="/map/contributors/"
+                            className="flex items-center gap-2 text-white text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                            style={{
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                padding: "8px 12px",
+                                borderRadius: "8px",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
+                                minWidth: 0,
+                                whiteSpace: "nowrap",
+                                textDecoration: "none",
+                                fontSize: "1rem",
+                                marginLeft: 18, // espaçamento entre Go Back e botão
+                            }}
+                        >
+                            <LuSparkles size={18} />
+                            <span style={{ fontFamily: "inherit", fontWeight: 600 }}>Make AI Notes</span>
+                        </Link>
+                    </div>
+                </div>
+                {/* Mobile: Make AI Notes na direita */}
+                <div className="flex items-center sm:hidden" style={{ flex: 1, justifyContent: "flex-end" }}>
+                    <Link
+                        href="/map/contributors/"
+                        className="flex items-center gap-2 text-white text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                        style={{
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            padding: "8px 12px",
+                            borderRadius: "8px",
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
+                            minWidth: 0,
+                            whiteSpace: "nowrap",
+                            textDecoration: "none",
+                            fontSize: "1rem",
+                        }}
+                    >
+                        <LuSparkles size={18} />
+                        <span style={{ fontFamily: "inherit", fontWeight: 600 }}>Make AI Notes</span>
+                    </Link>
+                </div>
                 {/* Center: AI Info */}
                 <span
                     className="text-white text-xs text-center w-full"
@@ -119,21 +168,24 @@ function MapHeader() {
                         lineHeight: "18px",
                         margin: "0 8px",
                         userSelect: "none",
-                        // Ensures it's centered
                         display: "flex",
                         justifyContent: "center",
+                        alignItems: "center",
+                        minHeight: 24,
+                        padding: "4px 0",
+                        wordBreak: "break-word",
+                        fontSize: "0.95rem",
                     }}
                 >
           The ratings are generated by AI and may not be suitable for important information
         </span>
                 {/* Right: Logo/Map */}
                 <div
-                    className="flex items-center gap-2"
+                    className="cexmap-logo flex items-center gap-2"
                     style={{
                         position: "absolute",
                         top: 10,
-                        right: 24,
-                        // Prevents it from moving other flex elements
+                        right: 16,
                         pointerEvents: "none",
                         userSelect: "none"
                     }}
@@ -143,47 +195,57 @@ function MapHeader() {
                         style={{
                             fontFamily: russoOne.style.fontFamily,
                             fontWeight: 400,
-                            fontSize: 20,
+                            fontSize: 18,
                             letterSpacing: 1,
                             color: "#fff",
                             marginRight: 1,
                         }}
                     >
-            CEX
-          </span>
+                        CEX
+                    </span>
                     <span
                         style={{
                             fontFamily: inter.style.fontFamily,
                             fontWeight: 600,
                             fontStyle: "italic",
-                            fontSize: 20,
+                            fontSize: 18,
                             color: "#fff",
                         }}
                     >
-            Map
-          </span>
+                        Map
+                    </span>
                 </div>
                 {/* Spacer for flexbox layout */}
-                <div style={{ width: 70, minWidth: 0, visibility: "hidden" }} />
+                <div className="hidden sm:block" style={{ width: 70, minWidth: 0, visibility: "hidden" }} />
             </div>
+            {/* Removido o logo duplicado do mobile */}
         </header>
     );
 }
 
 // ---------- Feedback component ----------
 function FeedbackButtons({
-                             iata,
-                             feedback,
-                             onFeedback,
-                             loading,
-                         }: {
+    iata,
+    feedback,
+    onFeedback,
+    loading,
+}: {
     iata: string;
     feedback: Feedback | null;
     onFeedback: (type: "positive" | "negative") => void;
     loading: boolean;
 }) {
     return (
-        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+            style={{
+                marginTop: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+                justifyContent: "flex-start",
+            }}
+        >
             <button
                 onClick={() => onFeedback("positive")}
                 disabled={loading}
@@ -192,11 +254,13 @@ function FeedbackButtons({
                     background: "#0f8",
                     border: "none",
                     borderRadius: 4,
-                    padding: "2px 10px",
+                    padding: "6px 16px",
                     fontWeight: 600,
                     fontSize: 16,
                     cursor: "pointer",
                     opacity: loading ? 0.7 : 1,
+                    minWidth: 64,
+                    marginBottom: 4,
                 }}
                 aria-label="Like"
             >
@@ -210,11 +274,13 @@ function FeedbackButtons({
                     background: "#e43",
                     border: "none",
                     borderRadius: 4,
-                    padding: "2px 10px",
+                    padding: "6px 16px",
                     fontWeight: 600,
                     fontSize: 16,
                     cursor: "pointer",
                     opacity: loading ? 0.7 : 1,
+                    minWidth: 64,
+                    marginBottom: 4,
                 }}
                 aria-label="Dislike"
             >
@@ -568,18 +634,62 @@ export default function AirportsMapPage() {
             </div>
             {/* Animations for modal */}
             <style jsx global>{`
-        @keyframes fade-in {
-          from { opacity: 0 }
-          to { opacity: 1 }
-        }
-        .animate-fade-in { animation: fade-in 0.5s both }
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(24px);}
-          to { opacity: 1; transform: translateY(0);}
-        }
-        .animate-fade-in-up { animation: fade-in-up 0.6s both }
-      `}</style>
+                @media (max-width: 600px) {
+                    header {
+                        min-height: 32px !important;
+                    }
+                    .text-xs {
+                        font-size: 0.85rem !important;
+                        padding: 2px 0 !important;
+                    }
+                    .flex-wrap {
+                        flex-wrap: wrap !important;
+                    }
+                    .px-4 {
+                        padding-left: 8px !important;
+                        padding-right: 8px !important;
+                    }
+                    .py-2 {
+                        padding-top: 4px !important;
+                        padding-bottom: 4px !important;
+                    }
+                    .gap-4 {
+                        gap: 6px !important;
+                    }
+                    .gap-8 {
+                        gap: 10px !important;
+                    }
+                    .text-sm {
+                        font-size: 0.95rem !important;
+                    }
+                    .text-base {
+                        font-size: 1rem !important;
+                    }
+                    .w-full {
+                        width: 100vw !important;
+                    }
+                    .h-screen {
+                        height: 100vh !important;
+                    }
+                    .animate-fade-in,
+                    .animate-fade-in-up {
+                        animation-duration: 0.4s !important;
+                    }
+                    .cexmap-logo {
+                        display: none !important;
+                    }
+                }
+                @keyframes fade-in {
+                    from { opacity: 0 }
+                    to { opacity: 1 }
+                }
+                .animate-fade-in { animation: fade-in 0.5s both }
+                @keyframes fade-in-up {
+                    from { opacity: 0; transform: translateY(24px);}
+                    to { opacity: 1; transform: translateY(0);}
+                }
+                .animate-fade-in-up { animation: fade-in-up 0.6s both }
+            `}</style>
         </div>
     );
 }
-

@@ -8,9 +8,10 @@ https://api.cex.theushen.me/api
 
 ---
 
+
 ## POST `/api/cex`
 
-Calculate and save CEX score for an airport.
+Create or update the CEX record for an airport.
 
 **Body (JSON):**
 - `Sp`, `Ac`, `Da`, `Zl`, `To`, `Ng`, `Rt`, `Pm`, `Va`, `Id`, `Sc`, `Lu`: *number* (required)
@@ -22,10 +23,10 @@ Calculate and save CEX score for an airport.
 {
   "iata": "GRU",
   "airport": "São Paulo/Guarulhos",
-  "C": 7.25,
-  "E": 8.00,
-  "X": 6.75,
-  "CEX": 7.33
+  "comfort": 7.25,
+  "efficiency": 8.00,
+  "aesthetics": 6.75,
+  "cex": 7.33
 }
 ```
 
@@ -52,9 +53,10 @@ Get all ratings for all airports.
 
 ---
 
+
 ## GET `/api/airports/<iata>`
 
-Get ratings for a specific airport by IATA code.
+Get CEX data for an airport by IATA code.
 
 **Params:**
 - `iata`: *string* (IATA code)
@@ -73,9 +75,10 @@ Get ratings for a specific airport by IATA code.
 
 ---
 
+
 ## GET `/api/airport_cex?iata=GRU`
 
-Get airport information by IATA code using a query parameter.
+Get CEX data for an airport using a query parameter.
 
 **Query Params:**
 - `iata`: *string* (IATA code, e.g. `GRU`)
@@ -132,6 +135,29 @@ Get airports with CEX score below a value.
 - `value`: *number*
 
 ---
+
+
+
+## POST `/calculate_cex`
+
+Calculate the CEX score for an airport (does not save to database).
+
+**Body (JSON):**
+- `Sp`, `Ac`, `Da`, `Zl`, `To`, `Ng`, `Rt`, `Pm`, `Va`, `Id`, `Sc`, `Lu`: *number* (required)
+- `iata`: *string* (required)
+- `airport`: *string* (required)
+
+**Response:**
+```json
+{
+  "IATA": "GRU",
+  "Airport": "São Paulo/Guarulhos",
+  "C": 7.25,
+  "E": 8.00,
+  "X": 6.75,
+  "CEX": 7.33
+}
+```
 
 ## Error Responses
 
