@@ -105,7 +105,7 @@ export default function CEXLoader() {
   }, []);
 
   useEffect(() => {
-    if (apiType && apiKey && apiKeySubmitted) {
+    if (typeof window !== "undefined" && apiType && apiKey && apiKeySubmitted) {
       saveAPIConfig(apiType, apiKey);
     }
   }, [apiType, apiKey, apiKeySubmitted]);
