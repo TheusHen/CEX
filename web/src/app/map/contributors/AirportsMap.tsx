@@ -91,8 +91,9 @@ const API_OPTIONS = [
 ];
 
 function getSavedAPIConfig(): { apiType: APIType; apiKey: string } | null {
+  if (typeof window === "undefined") return null;
   try {
-    const saved = localStorage.getItem("cex_api_config");
+    const saved = window.localStorage.getItem("cex_api_config");
     if (!saved) return null;
     return JSON.parse(saved);
   } catch {
@@ -101,7 +102,8 @@ function getSavedAPIConfig(): { apiType: APIType; apiKey: string } | null {
 }
 
 function saveAPIConfig(apiType: APIType, apiKey: string) {
-  localStorage.setItem(
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
     "cex_api_config",
     JSON.stringify({ apiType, apiKey })
   );
@@ -522,7 +524,7 @@ export default function AirportsMap({
   useEffect(() => {
     setCenter([-15, -50]);
     setZoom(3);
-    if (navigator.geolocation) {
+    if (typeof window !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const c: [number, number] = [pos.coords.latitude, pos.coords.longitude];
@@ -534,10 +536,12 @@ export default function AirportsMap({
         () => {}
       );
     }
-    const saved = getSavedAPIConfig();
-    if (saved && saved.apiType && saved.apiKey) {
-      setCurrentApiType(saved.apiType);
-      setCurrentApiKey(saved.apiKey);
+    if (typeof window !== "undefined") {
+      const saved = getSavedAPIConfig();
+      if (saved && saved.apiType && saved.apiKey) {
+        setCurrentApiType(saved.apiType);
+        setCurrentApiKey(saved.apiKey);
+      }
     }
   }, []);
 
