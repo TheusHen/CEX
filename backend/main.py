@@ -199,9 +199,11 @@ def create_cex():
     if not data:
         return jsonify({"error": "Invalid JSON."}), 400
 
-    iata = data.get("iata", "").strip().upper()
+    iata = data.get("iata") or data.get("IATA") or ""
+    iata = iata.strip().upper()
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid IATA code"}), 400
+
 
     try:
         exists = supabase.table("airports_cex").select("id").eq("iata", iata).single().execute()
