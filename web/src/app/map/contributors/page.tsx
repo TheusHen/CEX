@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 
 const CEXLoader = dynamic(() => import("./CEXLoader.client"), { ssr: false });
