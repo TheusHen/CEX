@@ -204,12 +204,13 @@ def create_cex():
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid IATA code"}), 400
 
-    if not data.get("airport"):
+    airport_name = data.get("airport") or data.get("Airport")
+    if not airport_name:
         return jsonify({"error": "Missing airport name"}), 400
 
-    filtered_data = {
+    filtered_data = {   
         "iata": iata,
-        "airport": data.get("airport", ""),
+        "airport": airport_name,
         "comfort": round(data.get("C", 0), 2),
         "efficiency": round(data.get("E", 0), 2),
         "aesthetics": round(data.get("X", 0), 2),
