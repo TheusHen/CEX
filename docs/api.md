@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-https://api.cex.theushen.me/api
+https://api.cex.theushen.me/
 ```
 
 ---

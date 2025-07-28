@@ -453,7 +453,7 @@ async function aiEvaluateAirport(
       iata: airport.iata_code,
       airport: airport.name,
     };
-    const calcResp = await fetch("http://127.0.0.1:5000/calculate_cex", {
+    const calcResp = await fetch("https://api.cex.theushen.me/calculate_cex", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -470,7 +470,7 @@ async function aiEvaluateAirport(
       ...json,
       ...calcData,
     };
-    const cexResp = await fetch("http://127.0.0.1:5000/api/cex", {
+    const cexResp = await fetch("https://api.cex.theushen.me/api/cex", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -193,6 +193,7 @@ def get_airports_cex_abaixo(value):
     return jsonify(response.data)
 
 @cex_bp.route("/cex", methods=["POST"])
+@cross_origin(origins="https://cex.theushen.me")
 def create_cex():
     data = request.get_json()
     if not data:
