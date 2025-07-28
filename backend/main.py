@@ -204,6 +204,17 @@ def create_cex():
     if not re.match(r"^[A-Z]{3}$", iata):
         return jsonify({"error": "Invalid IATA code"}), 400
 
+    if not data.get("airport"):
+        return jsonify({"error": "Missing airport name"}), 400
+
+    filtered_data = {
+        "iata": iata,
+        "airport": data.get("airport", ""),
+        "comfort": round(data.get("C", 0), 2),
+        "efficiency": round(data.get("E", 0), 2),
+        "aesthetics": round(data.get("X", 0), 2),
+        "cex": round(data.get("CEX", 0), 2)
+    }
 
     try:
         exists = supabase.table("airports_cex").select("id").eq("iata", iata).single().execute()
@@ -214,21 +225,18 @@ def create_cex():
         else:
             return jsonify({"error": str(e)}), 500
 
-    if row_exists:
-        upd = supabase.table("airports_cex").update(data).eq("iata", iata).execute()
-        try:
+    try:
+        if row_exists:
+            upd = supabase.table("airports_cex").update(filtered_data).eq("iata", iata).execute()
             raise_when_api_error(upd)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        supabase.table("airport_feedback").delete().eq("iata", iata).execute()
-        return jsonify(upd.data)
-    else:
-        ins = supabase.table("airports_cex").insert(data).execute()
-        try:
+            supabase.table("airport_feedback").delete().eq("iata", iata).execute()
+            return jsonify(upd.data)
+        else:
+            ins = supabase.table("airports_cex").insert(filtered_data).execute()
             raise_when_api_error(ins)
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        return jsonify(ins.data)
+            return jsonify(ins.data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @cex_bp.route("/airport_cex", methods=["GET"])
 def get_airport_by_iata_query():
