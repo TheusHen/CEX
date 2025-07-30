@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, KeyboardEvent, FormEvent } from "react";
 import AirportsMap from "./AirportsMap.client";
+import { useRouter } from "next/router";
 
 const API_OPTIONS = [
   {
@@ -90,6 +91,7 @@ export default function CEXLoader() {
   const [apiKeyTouched, setApiKeyTouched] = useState<boolean>(false);
   const [apiKeySubmitted, setApiKeySubmitted] = useState<boolean>(false);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
+  const router = useRouter();
 
   const apiInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -101,6 +103,9 @@ export default function CEXLoader() {
         setApiType(saved.apiType);
         setApiKey(saved.apiKey);
         setApiKeySubmitted(true);
+      } else {
+        // Redirect to setup
+        router.push("/map/contributors");
       }
     }
   }, []);
