@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, KeyboardEvent, FormEvent } from "react";
-import AirportsMap from "./AirportsMap.client";
-import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+
+const AirportsMap = dynamic(() => import("./AirportsMap.client"), { ssr: false });
 
 const API_OPTIONS = [
   {
@@ -103,9 +105,6 @@ export default function CEXLoader() {
         setApiType(saved.apiType);
         setApiKey(saved.apiKey);
         setApiKeySubmitted(true);
-      } else {
-        // Redirect to setup
-        router.push("/map/contributors");
       }
     }
   }, []);
