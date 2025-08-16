@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import * as Papa from "papaparse";
 import Link from "next/link";
 import { LuMapPin, LuSparkles } from "react-icons/lu";
@@ -72,28 +72,29 @@ type Feedback = {
 const ZOOM_LABELS = 7;
 
 // ---------- MapHeader ----------
-function MapHeader() {
+function MapHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }) {
+    // Button animation logic
+    const [hovered, setHovered] = useState(false);
+
     return (
         <header
+            ref={headerRef}
             className="w-full flex flex-col items-center px-0 py-0"
             style={{
                 background: "#000",
                 borderBottom: "2px solid #191919",
-                minHeight: "40px",
                 zIndex: 10,
                 position: "relative",
             }}
         >
-            {/* Top Bar: Go Back + Central Info + Logo */}
             <div
                 className="w-full flex flex-wrap items-center justify-between px-4 py-2"
                 style={{
-                    minHeight: 40,
                     width: "100%",
                     gap: 8,
+                    position: "relative",
                 }}
             >
-                {/* Left: Back Arrow and Go Back + Make AI Notes (desktop) */}
                 <div className="flex items-center gap-4 sm:gap-8" style={{ flex: 1 }}>
                     <Link
                         href="/"
@@ -113,30 +114,44 @@ function MapHeader() {
                         </svg>
                         <span style={{ fontFamily: "inherit", fontWeight: 400, verticalAlign: "middle" }}>Go Back</span>
                     </Link>
-                    {/* Desktop: Make AI Notes ao lado do Go Back */}
-                    <div className="hidden sm:flex">
-                        <Link
-                            href="/map/contributors/"
-                            className="flex items-center gap-2 text-white text-sm font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg"
-                            style={{
-                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                                padding: "8px 12px",
-                                borderRadius: "8px",
-                                border: "1px solid rgba(255, 255, 255, 0.1)",
-                                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
-                                minWidth: 0,
-                                whiteSpace: "nowrap",
-                                textDecoration: "none",
-                                fontSize: "1rem",
-                                marginLeft: 18, // espaçamento entre Go Back e botão
-                            }}
-                        >
-                            <LuSparkles size={18} />
-                            <span style={{ fontFamily: "inherit", fontWeight: 600 }}>Make AI Notes</span>
-                        </Link>
-                    </div>
+                    {/* Make AI Notes Button - white default, colored/animated on hover, next to Go Back */}
+                    <Link
+                        href="/map/contributors/"
+                        className={`make-ai-notes-btn flex items-center gap-2 font-semibold transition-all duration-200`}
+                        style={{
+                            background: hovered
+                                ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                                : "#fff",
+                            color: hovered ? "#fff" : "#222",
+                            boxShadow: hovered
+                                ? "0 8px 32px #764ba299"
+                                : "0 2px 12px rgba(0,0,0,0.08)",
+                            transform: hovered ? "scale(1.07) translateY(-2px)" : "scale(1)",
+                            borderRadius: "10px", // reduzido de 14px
+                            border: "1.5px solid rgba(120,100,255,0.10)",
+                            padding: "8px 16px", // reduzido de 12px 24px
+                            fontSize: "1rem", // reduzido de 1.14rem
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            minWidth: 0,
+                            whiteSpace: "nowrap",
+                            willChange: "transform, box-shadow, background, color",
+                            marginLeft: 12, // reduzido de 18
+                        }}
+                        onMouseEnter={() => setHovered(true)}
+                        onMouseLeave={() => setHovered(false)}
+                    >
+                        <LuSparkles size={18} style={{ transition: "transform 0.3s", transform: hovered ? "rotate(-12deg) scale(1.15)" : "none" }} />
+                        <span style={{
+                            fontFamily: "inherit",
+                            fontWeight: 700,
+                            letterSpacing: 0.2,
+                            fontStyle: "italic",
+                            transition: "color 0.2s"
+                        }}>Make AI Notes</span>
+                    </Link>
                 </div>
-                {/* Mobile: Make AI Notes na direita */}
+                {/* fallback for mobile */}
                 <div className="flex items-center sm:hidden" style={{ flex: 1, justifyContent: "flex-end" }}>
                     <Link
                         href="/map/contributors/"
@@ -157,7 +172,6 @@ function MapHeader() {
                         <span style={{ fontFamily: "inherit", fontWeight: 600 }}>Make AI Notes</span>
                     </Link>
                 </div>
-                {/* Center: AI Info */}
                 <span
                     className="text-white text-xs text-center w-full"
                     style={{
@@ -177,9 +191,8 @@ function MapHeader() {
                         fontSize: "0.95rem",
                     }}
                 >
-          The ratings are generated by AI and may not be suitable for important information
-        </span>
-                {/* Right: Logo/Map */}
+                    The ratings are generated by AI and may not be suitable for important information
+                </span>
                 <div
                     className="cexmap-logo flex items-center gap-2"
                     style={{
@@ -215,21 +228,24 @@ function MapHeader() {
                         Map
                     </span>
                 </div>
-                {/* Spacer for flexbox layout */}
                 <div className="hidden sm:block" style={{ width: 70, minWidth: 0, visibility: "hidden" }} />
             </div>
-            {/* Removido o logo duplicado do mobile */}
+            <style jsx>{`
+                .make-ai-notes-btn {
+                    transition: background 0.28s cubic-bezier(.6,.2,.2,1), color 0.22s, box-shadow 0.26s, transform 0.21s;
+                }
+            `}</style>
         </header>
     );
 }
 
 // ---------- Feedback component ----------
 function FeedbackButtons({
-    iata,
-    feedback,
-    onFeedback,
-    loading,
-}: {
+                             iata,
+                             feedback,
+                             onFeedback,
+                             loading,
+                         }: {
     iata: string;
     feedback: Feedback | null;
     onFeedback: (type: "positive" | "negative") => void;
@@ -309,7 +325,6 @@ function AirportsMarkers({
     const [feedbackMap, setFeedbackMap] = useState<Record<string, Feedback | null>>({});
     const [feedbackLoading, setFeedbackLoading] = useState<Record<string, boolean>>({});
 
-    // Fetch info when popup opens
     async function fetchAirportCex(iata_code: string) {
         try {
             const res = await fetch(`https://api.cex.theushen.me/api/airport_cex?iata=${encodeURIComponent(iata_code)}`);
@@ -324,11 +339,9 @@ function AirportsMarkers({
             const res = await fetch(`https://api.cex.theushen.me/feedback/${encodeURIComponent(iata_code)}`);
             if (!res.ok) return null;
             const result = await res.json();
-            // If not found, always return default
             if (!result || typeof result !== "object" || result.error) {
                 return { iata: iata_code, positive: 0, negative: 0 };
             }
-            // Sometimes API returns null for missing, so fallback
             if (result.positive === undefined || result.negative === undefined)
                 return { iata: iata_code, positive: 0, negative: 0 };
             return result;
@@ -349,7 +362,6 @@ function AirportsMarkers({
         onAirportClick(iata);
     }
 
-    // Feedback POST
     async function postFeedback(iata: string, type: "positive" | "negative") {
         setFeedbackLoading((prev) => ({ ...prev, [iata]: true }));
         try {
@@ -423,8 +435,8 @@ function AirportsMarkers({
                                             <li>
                                                 <b>CEx:</b>{" "}
                                                 <span style={{ color: "#0f8", fontWeight: 600 }}>
-                          {notesMap[iata]?.cex?.toFixed(2)}
-                        </span>
+                                                    {notesMap[iata]?.cex?.toFixed(2)}
+                                                </span>
                                             </li>
                                         </ul>
                                     </div>
@@ -434,7 +446,6 @@ function AirportsMarkers({
                                     <span style={{ color: "#888" }}>This airport has not been rated yet.</span>
                                 )}
 
-                                {/* Feedback */}
                                 <div>
                                     <FeedbackButtons
                                         iata={iata}
@@ -508,18 +519,29 @@ export default function AirportsMapPage() {
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [flyToUser, setFlyToUser] = useState(false);
 
-    // CEX
     const [pinsCex, setPinsCex] = useState<Record<string, AirportPinCex>>({});
-
-    // For page-level selection (e.g. open graph/modal on click)
     const [selectedIata, setSelectedIata] = useState<string | null>(null);
 
-    // Dynamically import Leaflet CSS on client only
+    const headerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+    const [headerHeight, setHeaderHeight] = useState<number>(0);
+
     useEffect(() => {
         if (isClient) {
             // @ts-ignore
             import("leaflet/dist/leaflet.css");
         }
+    }, []);
+
+    // Get header height dynamically for proper map offset
+    useEffect(() => {
+        function updateHeaderHeight() {
+            if (headerRef.current) {
+                setHeaderHeight(headerRef.current.offsetHeight);
+            }
+        }
+        updateHeaderHeight();
+        window.addEventListener("resize", updateHeaderHeight);
+        return () => window.removeEventListener("resize", updateHeaderHeight);
     }, []);
 
     // Load user location, airports, CEX pin info
@@ -539,7 +561,6 @@ export default function AirportsMapPage() {
                 () => { }
             );
         }
-        // Load airports from CSV
         let isMounted = true;
         async function fetchAirports() {
             return new Promise<Airport[]>((resolve, reject) => {
@@ -598,18 +619,24 @@ export default function AirportsMapPage() {
     if (!center || !isClient) return null;
 
     return (
-        <div className="w-full h-screen relative bg-black">
+        <div className="w-full h-screen flex flex-col bg-black">
             {/* Header */}
-            <MapHeader />
+            <MapHeader headerRef={headerRef} />
             {/* Map */}
-            <div style={{ position: "absolute", inset: "72px 0 0 0", zIndex: 1 }}>
+            <div
+                style={{
+                    flex: 1,
+                    width: "100vw",
+                    minHeight: 0,
+                }}
+            >
                 {isClient && MapContainer && (
                     <MapContainer
                         center={center}
                         zoom={zoom}
                         minZoom={2}
                         maxZoom={12}
-                        style={{ width: "100vw", height: "calc(100vh - 72px)" }}
+                        style={{ width: "100vw", height: "100%", minHeight: 0 }}
                         scrollWheelZoom
                     >
                         <TileLayer
@@ -632,7 +659,6 @@ export default function AirportsMapPage() {
                     </MapContainer>
                 )}
             </div>
-            {/* Animations for modal */}
             <style jsx global>{`
                 @media (max-width: 600px) {
                     header {
