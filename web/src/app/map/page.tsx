@@ -114,10 +114,10 @@ function MapHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }
                         </svg>
                         <span style={{ fontFamily: "inherit", fontWeight: 400, verticalAlign: "middle" }}>Go Back</span>
                     </Link>
-                    {/* Make AI Notes Button - white default, colored/animated on hover, next to Go Back */}
+                    {/* Make AI Notes Button - white default, colored/animated on hover, next to Go Back - hidden on mobile */}
                     <Link
                         href="/map/contributors/"
-                        className={`make-ai-notes-btn flex items-center gap-2 font-semibold transition-all duration-200`}
+                        className={`make-ai-notes-btn hidden sm:flex items-center gap-2 font-semibold transition-all duration-200`}
                         style={{
                             background: hovered
                                 ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
@@ -151,7 +151,7 @@ function MapHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }
                         }}>Make AI Notes</span>
                     </Link>
                 </div>
-                {/* fallback for mobile */}
+                {/* Make AI Notes Button for mobile only */}
                 <div className="flex items-center sm:hidden" style={{ flex: 1, justifyContent: "flex-end" }}>
                     <Link
                         href="/map/contributors/"
