@@ -18,6 +18,43 @@ import ExportButton from '../components/ExportButton';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const russoOne = Russo_One({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const inter = Inter({
+  weight: ["400", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+});
+
+type Airport = {
+  iata: string;
+  airport: string;
+  comfort: number;
+  efficiency: number;
+  aesthetics: number;
+  cex: number;
+  created_at: string;
+  rank?: number;
+  category_score?: number;
+};
+
+type RankingData = {
+  category?: string;
+  region?: string;
+  rankings: Airport[];
+};
+
+function RankingsContent() {
+  const { theme } = useTheme();
+  const themeClasses = getThemeClasses(theme);
+  const exportRef = useRef<HTMLDivElement>(null);
+export const revalidate = 0;
 
 const russoOne = Russo_One({
   weight: "400",
@@ -50,9 +87,15 @@ type RankingData = {
 };
 
 export default function RankingsPage() {
-  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || 'light';
   const themeClasses = getThemeClasses(theme);
   const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const [activeTab, setActiveTab] = useState<"global" | "category" | "region">("global");
   const [selectedCategory, setSelectedCategory] = useState<"comfort" | "efficiency" | "aesthetics">("comfort");
@@ -444,14 +487,37 @@ export default function RankingsPage() {
                           {airport.efficiency}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${selectedCategory === 'aesthetics' ? 'text-indigo-600' : 'text-gray-900'}`}>
-                          {airport.aesthetics}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
+export default function RankingsPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <RankingsContent />;
+}
                   {activeTab === "region" && regionRankings?.rankings.map((airport) => (
                     <tr key={airport.iata} className={`${getRankBgColor(airport.rank || 0)} border-l-4`}>
                       <td className="px-6 py-4 whitespace-nowrap">

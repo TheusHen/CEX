@@ -34,55 +34,17 @@ import {
 } from "recharts";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { useTheme, getThemeClasses } from '../components/ThemeProvider';
 import ThemeToggle from '../components/ThemeToggle';
 import ExportButton from '../components/ExportButton';
 
-"use client";
-
-import React, { useState, useEffect, useRef } from "react";
-import { Russo_One, Inter } from "next/font/google";
-import Link from "next/link";
-import { 
-  LuHouse, 
-  LuRefreshCw, 
-  LuTrendingUp, 
-  LuChartBar, 
-  LuChartPie,
-  LuActivity,
-  LuGlobe,
-  LuAward
-} from "react-icons/lu";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  Legend
-} from "recharts";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { useTheme, getThemeClasses } from '../components/ThemeProvider';
-import ThemeToggle from '../components/ThemeToggle';
-import ExportButton from '../components/ExportButton';
-
-// Force dynamic rendering
+// Disable static generation for this page since it uses client-side hooks
 export const dynamic = 'force-dynamic';
 
 const russoOne = Russo_One({
+  weight: ["400"],
+  subsets: ["latin"],
+  display: "swap",
+});
 
 const inter = Inter({
   weight: ["400", "600", "700"],
@@ -139,9 +101,6 @@ type ComparisonData = {
 const COLORS = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
 
 export default function AnalyticsPage() {
-  const { theme } = useTheme();
-  const themeClasses = getThemeClasses(theme);
-  
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null);
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);

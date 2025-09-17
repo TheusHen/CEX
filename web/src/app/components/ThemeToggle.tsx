@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { LuSun, LuMoon } from 'react-icons/lu';
 import { useTheme } from './ThemeProvider';
 
@@ -10,7 +10,20 @@ interface ThemeToggleProps {
 }
 
 export default function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
+  const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className={`p-2 w-10 h-10 ${className}`}>
+        {/* Placeholder during SSR */}
+      </div>
+    );
+  }
 
   const sizeClasses = {
     sm: 'p-1.5 text-sm',
