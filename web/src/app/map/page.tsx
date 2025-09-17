@@ -114,6 +114,28 @@ function MapHeader({ headerRef }: { headerRef: React.RefObject<HTMLDivElement> }
                         </svg>
                         <span style={{ fontFamily: "inherit", fontWeight: 400, verticalAlign: "middle" }}>Go Back</span>
                     </Link>
+                    <Link
+                        href="/rankings"
+                        className="text-white hover:text-indigo-300 transition-colors duration-200 hidden sm:block"
+                        style={{
+                            textDecoration: "none",
+                            fontWeight: 600,
+                            fontSize: 16,
+                        }}
+                    >
+                        🏆 Rankings
+                    </Link>
+                    <Link
+                        href="/analytics"
+                        className="text-white hover:text-indigo-300 transition-colors duration-200 hidden sm:block"
+                        style={{
+                            textDecoration: "none",
+                            fontWeight: 600,
+                            fontSize: 16,
+                        }}
+                    >
+                        📊 Analytics
+                    </Link>
                     {/* Make AI Notes Button - white default, colored/animated on hover, next to Go Back - hidden on mobile */}
                     <Link
                         href="/map/contributors/"
@@ -313,12 +335,19 @@ function AirportsMarkers({
                              zoom,
                              pinsCex,
                              onAirportClick,
+                             filters,
                          }: {
     airports: Airport[];
     bounds: [[number, number], [number, number]] | null;
     zoom: number;
     pinsCex: Record<string, AirportPinCex>;
     onAirportClick: (iata: string) => void;
+    filters: {
+        region: string;
+        scoreRange: [number, number];
+        category: string;
+        showOnlyRated: boolean;
+    };
 }) {
     const [notesMap, setNotesMap] = useState<Record<string, AirportCex | null>>({});
     const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
@@ -377,17 +406,67 @@ function AirportsMarkers({
         }
     }
 
+    const getPinColor = (pin?: AirportPinCex) => {
+        if (!pin) return "#0af"; // Blue for unrated
+        
+        const cexScore = pin.cex;
+        if (cexScore >= 8.0) return "#0f8"; // Green for excellent
+        if (cexScore >= 6.0) return "#fa0"; // Orange for good
+        if (cexScore >= 4.0) return "#ff0"; // Yellow for average
+        return "#f44"; // Red for poor
+    };
+
+    const getPinSize = (pin?: AirportPinCex) => {
+        if (!pin) return 5;
+        
+        const cexScore = pin.cex;
+        if (cexScore >= 8.0) return 8;
+        if (cexScore >= 6.0) return 7;
+        return 6;
+    };
+
     const visibleAirports = useMemo(() => {
         if (!bounds) return [];
         const [[south, west], [north, east]] = bounds;
-        return airports.filter(
-            (a) =>
-                a.latitude >= south &&
-                a.latitude <= north &&
-                a.longitude >= west &&
-                a.longitude <= east
-        );
-    }, [airports, bounds]);
+        
+        return airports.filter((a) => {
+            // Geographic bounds check
+            if (a.latitude < south || a.latitude > north || 
+                a.longitude < west || a.longitude > east) {
+                return false;
+            }
+
+            const iata = a.iata_code;
+            const pin = pinsCex[iata];
+            
+            // Show only rated filter
+            if (filters.showOnlyRated && !pin) {
+                return false;
+            }
+
+            // Region filter (based on IATA first letter)
+            if (filters.region !== "all" && !iata.startsWith(filters.region)) {
+                return false;
+            }
+
+            // Score range filter
+            if (pin && pin.cex) {
+                if (pin.cex < filters.scoreRange[0] || pin.cex > filters.scoreRange[1]) {
+                    return false;
+                }
+            }
+
+            // Category filter (for high-performing airports in specific categories)
+            if (filters.category !== "all" && pin) {
+                const categoryScore = pin[filters.category as keyof AirportPinCex] as number;
+                if (categoryScore < 7.0) { // Only show airports with high scores in selected category
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [airports, bounds, filters, pinsCex]);
 
     return (
         <>
@@ -395,12 +474,14 @@ function AirportsMarkers({
                 const iata = airport.iata_code;
                 const pin = pinsCex[iata];
                 const isRated = !!pin;
-                const color = isRated ? "#0f8" : "#0af";
+                const color = getPinColor(pin);
+                const radius = getPinSize(pin);
+                
                 return (
                     <CircleMarker
                         key={airport.id}
                         center={[airport.latitude, airport.longitude]}
-                        radius={6}
+                        radius={radius}
                         pathOptions={{
                             color,
                             fillColor: color,
@@ -439,6 +520,12 @@ function AirportsMarkers({
                                                 </span>
                                             </li>
                                         </ul>
+                                        <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+                                            {pin?.cex >= 8.0 && "🏆 Excellent"}
+                                            {pin?.cex >= 6.0 && pin?.cex < 8.0 && "⭐ Good"}
+                                            {pin?.cex >= 4.0 && pin?.cex < 6.0 && "📊 Average"}
+                                            {pin?.cex < 4.0 && "⚠️ Needs Improvement"}
+                                        </div>
                                     </div>
                                 ) : loadingMap[iata] ? (
                                     <span style={{ color: "#888" }}>Loading ratings...</span>
@@ -459,6 +546,11 @@ function AirportsMarkers({
                         {zoom >= ZOOM_LABELS && (
                             <Tooltip direction="top" offset={[0, -15]} permanent>
                                 <b>{iata}</b> - {airport.name}
+                                {pin && (
+                                    <span style={{ display: 'block', fontSize: 10, color: '#666' }}>
+                                        CEX: {pin.cex.toFixed(1)}
+                                    </span>
+                                )}
                             </Tooltip>
                         )}
                     </CircleMarker>
@@ -521,6 +613,15 @@ export default function AirportsMapPage() {
 
     const [pinsCex, setPinsCex] = useState<Record<string, AirportPinCex>>({});
     const [selectedIata, setSelectedIata] = useState<string | null>(null);
+
+    // Filter states
+    const [filters, setFilters] = useState({
+        region: "all",
+        scoreRange: [0, 10] as [number, number],
+        category: "all",
+        showOnlyRated: false,
+    });
+    const [showFilters, setShowFilters] = useState(false);
 
     const headerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
     const [headerHeight, setHeaderHeight] = useState<number>(0);
@@ -649,6 +750,7 @@ export default function AirportsMapPage() {
                             zoom={zoom}
                             pinsCex={pinsCex}
                             onAirportClick={setSelectedIata}
+                            filters={filters}
                         />
                         <MapEvents
                             setBounds={setBounds}
