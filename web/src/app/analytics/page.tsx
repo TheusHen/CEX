@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null);
   const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
-  const [compareAirports, setCompareAirports] = useState("GRU,JFK,LHR");
+  const [compareAirports, setCompareAirports] = useState("ZRH,BOS,CNF");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const dashboardRef = useRef<HTMLDivElement>(null);
@@ -148,10 +148,24 @@ export default function AnalyticsPage() {
   };
 
   const fetchComparison = async () => {
-    const response = await fetch(`${API_BASE}/analytics/compare?airports=${compareAirports}`);
-    if (!response.ok) throw new Error('Failed to fetch comparison');
-    const data = await response.json();
-    setComparisonData(data);
+    try {
+      const response = await fetch(`${API_BASE}/analytics/compare?airports=${compareAirports}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.suggestion) {
+          setError(`Airport comparison failed: ${errorData.error}. ${errorData.suggestion}`);
+        } else {
+          throw new Error(errorData.error || 'Failed to fetch comparison');
+        }
+        return;
+      }
+      const data = await response.json();
+      setComparisonData(data);
+      setError(""); // Clear any previous errors
+    } catch (err: any) {
+      console.error("Comparison error:", err);
+      setError(`Comparison failed: ${err.message}`);
+    }
   };
 
   const handleComparisonUpdate = async () => {
@@ -463,7 +477,7 @@ export default function AnalyticsPage() {
               type="text"
               value={compareAirports}
               onChange={(e) => setCompareAirports(e.target.value)}
-              placeholder="GRU,JFK,LHR"
+              placeholder="ZRH,BOS,CNF"
               className="px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
             <button

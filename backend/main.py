@@ -549,20 +549,35 @@ def compare_airports():
     
     try:
         airports_data = []
+        not_found = []
+        
         for iata in iata_codes:
             if not re.match(r"^[A-Z]{3}$", iata):
+                not_found.append(iata)
                 continue
                 
-            response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
-            if response.data:
-                airports_data.append(response.data)
+            response = supabase.table("airports_cex").select("*").eq("iata", iata).execute()
+            if response.data and len(response.data) > 0:
+                airports_data.append(response.data[0])
+            else:
+                not_found.append(iata)
         
         if len(airports_data) < 2:
-            return jsonify({"error": "Not enough valid airports found for comparison"}), 404
+            available_airports = supabase.table("airports_cex").select("iata, airport").limit(10).execute()
+            available_list = [f"{a['iata']} ({a['airport']})" for a in available_airports.data] if available_airports.data else []
+            
+            return jsonify({
+                "error": "Not enough valid airports found for comparison",
+                "requested": iata_codes,
+                "not_found": not_found,
+                "found": [a['iata'] for a in airports_data],
+                "suggestion": f"Try using some of these available airports: {', '.join(available_list[:5])}"
+            }), 404
         
         # Calculate comparison metrics
         comparison = {
             "airports": airports_data,
+            "not_found": not_found if not_found else None,
             "best_comfort": max(airports_data, key=lambda x: float(x['comfort']) if x['comfort'] else 0),
             "best_efficiency": max(airports_data, key=lambda x: float(x['efficiency']) if x['efficiency'] else 0),
             "best_aesthetics": max(airports_data, key=lambda x: float(x['aesthetics']) if x['aesthetics'] else 0),
@@ -577,6 +592,7 @@ def compare_airports():
         
         return jsonify(comparison)
     except Exception as e:
+        logging.error(f"Error in compare_airports: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @cex_bp.route("/recommendations/similar", methods=["GET"])
