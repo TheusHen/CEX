@@ -27,11 +27,11 @@ type Airport = {
 type APIType = "openai" | "gemini" | "";
 
 const AI_PROMPT = (airport: string, iata: string) => `
-You are a specialist airport evaluator. Based on the data, images, descriptions, or reports provided about the airport below, extract and estimate the following 12 objective and subjective criteria. The values should range from 0 to 10, with 10 being the best possible score.
+You are a specialist airport evaluator. Based on your knowledge about the airport below, web data, and general aviation industry standards, estimate the following 12 objective and subjective criteria. Use your understanding of airport infrastructure, passenger flow, and design principles to provide realistic assessments. The values should range from 0 to 10, with 10 being the best possible score.
 
 Airport: ${airport} (IATA Code: ${iata})
 
-Evaluate:
+Evaluate based on your knowledge and web data:
 
 **Comfort (C)**
 1. Sp — Average personal space per passenger (m²)
@@ -70,7 +70,7 @@ Expected response format (only values between 0 and 10, with one decimal place):
 }
 \`\`\`
 
-Only estimate the values based on the provided information. Do not generate explanations.
+Estimate the values based on your knowledge about this airport. Do not ask for additional information. Provide only the JSON response with estimated values.
 `;
 
 const API_OPTIONS = [
