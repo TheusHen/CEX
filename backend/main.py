@@ -555,12 +555,19 @@ def compare_airports():
             if not re.match(r"^[A-Z]{3}$", iata):
                 not_found.append(iata)
                 continue
-                
-            response = supabase.table("airports_cex").select("*").eq("iata", iata).execute()
-            if response.data and len(response.data) > 0:
-                airports_data.append(response.data[0])
-            else:
-                not_found.append(iata)
+            
+            try:
+                response = supabase.table("airports_cex").select("*").eq("iata", iata).single().execute()
+                if response.data:
+                    airports_data.append(response.data)
+                else:
+                    not_found.append(iata)
+            except Exception as e:
+                # Handle case when airport is not found (0 rows)
+                if "0 rows" in str(e) or "PGRST116" in str(e):
+                    not_found.append(iata)
+                else:
+                    raise e
         
         if len(airports_data) < 2:
             available_airports = supabase.table("airports_cex").select("iata, airport").limit(10).execute()
