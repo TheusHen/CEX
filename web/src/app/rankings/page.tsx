@@ -18,7 +18,6 @@ import ExportButton from '../components/ExportButton';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 const russoOne = Russo_One({
   weight: "400",
@@ -54,48 +53,6 @@ function RankingsContent() {
   const { theme } = useTheme();
   const themeClasses = getThemeClasses(theme);
   const exportRef = useRef<HTMLDivElement>(null);
-export const revalidate = 0;
-
-const russoOne = Russo_One({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const inter = Inter({
-  weight: ["400", "600", "700"],
-  subsets: ["latin"],
-  display: "swap",
-});
-
-type Airport = {
-  iata: string;
-  airport: string;
-  comfort: number;
-  efficiency: number;
-  aesthetics: number;
-  cex: number;
-  created_at: string;
-  rank?: number;
-  category_score?: number;
-};
-
-type RankingData = {
-  category?: string;
-  region?: string;
-  rankings: Airport[];
-};
-
-export default function RankingsPage() {
-  const [mounted, setMounted] = useState(false);
-  const themeContext = useTheme();
-  const theme = themeContext?.theme || 'light';
-  const themeClasses = getThemeClasses(theme);
-  const exportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
   
   const [activeTab, setActiveTab] = useState<"global" | "category" | "region">("global");
   const [selectedCategory, setSelectedCategory] = useState<"comfort" | "efficiency" | "aesthetics">("comfort");
@@ -192,260 +149,177 @@ export default function RankingsPage() {
     return [];
   };
 
-  const exportData = () => {
-    let dataToExport: Airport[] = [];
-    let filename = "";
-
+  const refreshData = () => {
     if (activeTab === "global") {
-      dataToExport = globalRankings;
-      filename = "global_rankings";
-    } else if (activeTab === "category" && categoryRankings) {
-      dataToExport = categoryRankings.rankings;
-      filename = `${selectedCategory}_rankings`;
-    } else if (activeTab === "region" && regionRankings) {
-      dataToExport = regionRankings.rankings;
-      filename = `region_${selectedRegion}_rankings`;
+      fetchGlobalRankings();
+    } else if (activeTab === "category") {
+      fetchCategoryRankings();
+    } else if (activeTab === "region") {
+      fetchRegionRankings();
     }
-
-    if (dataToExport.length === 0) return;
-
-    const csvContent = [
-      ["Rank", "IATA", "Airport", "CEX Score", "Comfort", "Efficiency", "Aesthetics", "Date"],
-      ...dataToExport.map(airport => [
-        airport.rank || "",
-        airport.iata,
-        airport.airport,
-        airport.cex,
-        airport.comfort,
-        airport.efficiency,
-        airport.aesthetics,
-        airport.created_at
-      ])
-    ].map(row => row.join(",")).join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filename}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${
-      theme === 'dark' 
-        ? 'bg-gray-900' 
-        : 'bg-gradient-to-br from-slate-50 to-indigo-50'
-    } ${inter.className}`}>
-      {/* Header */}
-      <div className={`shadow-sm border-b transition-colors duration-200 ${
-        theme === 'dark' 
-          ? 'bg-gray-800 border-gray-700' 
-          : 'bg-white border-gray-200'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+    <div className={`min-h-screen ${themeClasses.bg} ${themeClasses.text}`}>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <Link href="/" className={`transition-colors ${
-                theme === 'dark' 
-                  ? 'text-indigo-400 hover:text-indigo-300' 
-                  : 'text-indigo-600 hover:text-indigo-700'
-              }`}>
-                <LuHouse className="w-6 h-6" />
+              <Link 
+                href="/home"
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${themeClasses.hover} transition-colors duration-200`}
+              >
+                <LuHouse className="w-5 h-5" />
+                <span className="font-medium">Home</span>
               </Link>
-              <h1 className={`${russoOne.className} text-3xl font-bold ${themeClasses.text}`}>
-                CEX Rankings
-              </h1>
+              <div className="flex items-center space-x-2">
+                <h1 className={`text-4xl font-bold ${russoOne.className}`}>CEX Rankings</h1>
+                <LuTrophy className="w-8 h-8 text-yellow-500" />
+              </div>
             </div>
             <div className="flex items-center space-x-3">
-              <ThemeToggle />
-              <ExportButton
-                data={getCurrentData()}
-                filename={`CEX_Rankings_${activeTab}`}
-                sheetName="Rankings"
-                elementRef={exportRef}
-                showFormats={['csv', 'excel', 'pdf']}
-              />
               <button
-                onClick={() => {
-                  if (activeTab === "global") fetchGlobalRankings();
-                  else if (activeTab === "category") fetchCategoryRankings();
-                  else if (activeTab === "region") fetchRegionRankings();
-                }}
-                className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={refreshData}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${themeClasses.hover} transition-colors duration-200`}
+                disabled={loading}
               >
-                <LuRefreshCw className="w-4 h-4" />
+                <LuRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </button>
+              <ExportButton 
+                data={getCurrentData()} 
+                filename={`cex-rankings-${activeTab}`}
+                elementRef={exportRef}
+              />
+              <ThemeToggle />
             </div>
           </div>
+          
+          <p className={`text-lg ${themeClasses.textSecondary} ${inter.className}`}>
+            Explore the top-rated airports worldwide based on comfort, efficiency, and aesthetics.
+          </p>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
-        <div className={`rounded-lg shadow-sm p-6 mb-8 transition-colors duration-200 ${themeClasses.cardBg}`}>
-          <div className={`flex space-x-1 p-1 rounded-lg transition-colors duration-200 ${
-            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'
-          }`}>
+        <div className="flex space-x-1 mb-6">
+          {([
+            { key: "global", label: "Global Rankings", icon: LuTrophy },
+            { key: "category", label: "By Category", icon: LuFilter },
+            { key: "region", label: "By Region", icon: LuStar },
+          ] as const).map(({ key, label, icon: Icon }) => (
             <button
-              onClick={() => setActiveTab("global")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "global"
-                  ? `shadow-sm ${theme === 'dark' 
-                      ? 'bg-gray-600 text-indigo-400' 
-                      : 'bg-white text-indigo-600'
-                    }`
-                  : `${theme === 'dark' 
-                      ? 'text-gray-300 hover:text-white' 
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === key
+                  ? "bg-indigo-600 text-white shadow-lg"
+                  : `${themeClasses.hover} ${themeClasses.text}`
               }`}
             >
-              Global Rankings
+              <Icon className="w-4 h-4" />
+              <span>{label}</span>
             </button>
-            <button
-              onClick={() => setActiveTab("category")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "category"
-                  ? `shadow-sm ${theme === 'dark' 
-                      ? 'bg-gray-600 text-indigo-400' 
-                      : 'bg-white text-indigo-600'
-                    }`
-                  : `${theme === 'dark' 
-                      ? 'text-gray-300 hover:text-white' 
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`
-              }`}
-            >
-              By Category
-            </button>
-            <button
-              onClick={() => setActiveTab("region")}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "region"
-                  ? `shadow-sm ${theme === 'dark' 
-                      ? 'bg-gray-600 text-indigo-400' 
-                      : 'bg-white text-indigo-600'
-                    }`
-                  : `${theme === 'dark' 
-                      ? 'text-gray-300 hover:text-white' 
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`
-              }`}
-            >
-              By Region
-            </button>
-          </div>
-
-          {/* Filters */}
-          {activeTab === "category" && (
-            <div className="mt-4 flex items-center space-x-4">
-              <LuFilter className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value as any)}
-                className={`px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="comfort">Comfort</option>
-                <option value="efficiency">Efficiency</option>
-                <option value="aesthetics">Aesthetics</option>
-              </select>
-            </div>
-          )}
-
-          {activeTab === "region" && (
-            <div className="mt-4 flex items-center space-x-4">
-              <LuFilter className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className={`px-3 py-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 ${
-                  theme === 'dark' 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="S">South America (S)</option>
-                <option value="G">North America (G)</option>
-                <option value="E">Europe (E)</option>
-                <option value="L">Asia (L)</option>
-                <option value="F">Africa (F)</option>
-                <option value="Y">Australia/Oceania (Y)</option>
-              </select>
-            </div>
-          )}
+          ))}
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <LuRefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-600 mb-4" />
-            <p className="text-gray-600">Loading rankings...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Rankings Display */}
-        {!loading && !error && (
-          <div ref={exportRef} className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {activeTab === "global" && "Global Airport Rankings"}
-                {activeTab === "category" && `Best ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Airports`}
-                {activeTab === "region" && `Top Airports in Region ${selectedRegion}`}
-              </h2>
+        {/* Category/Region Filters */}
+        {activeTab === "category" && (
+          <div className="mb-6">
+            <div className="flex space-x-2">
+              {(["comfort", "efficiency", "aesthetics"] as const).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 capitalize ${
+                    selectedCategory === category
+                      ? "bg-indigo-600 text-white"
+                      : `${themeClasses.hover} ${themeClasses.text}`
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
             </div>
+          </div>
+        )}
 
+        {activeTab === "region" && (
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: "N", label: "North America" },
+                { key: "S", label: "South America" },
+                { key: "E", label: "Europe" },
+                { key: "A", label: "Asia" },
+                { key: "F", label: "Africa" },
+                { key: "O", label: "Oceania" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedRegion(key)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    selectedRegion === key
+                      ? "bg-indigo-600 text-white"
+                      : `${themeClasses.hover} ${themeClasses.text}`
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div ref={exportRef} className={`${themeClasses.cardBg} rounded-lg shadow-lg overflow-hidden ${themeClasses.border} border`}>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className={`mt-2 ${themeClasses.textSecondary}`}>Loading rankings...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="p-6 text-center">
+              <p className="text-red-500">{error}</p>
+              <button 
+                onClick={refreshData}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full">
+                <thead className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Rank
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Airport
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      CEX Score
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comfort
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Efficiency
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aesthetics
-                    </th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>Rank</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>Airport</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>IATA</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>CEX Score</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>Comfort</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>Efficiency</th>
+                    <th className={`px-6 py-3 text-left text-xs font-medium ${themeClasses.textSecondary} uppercase tracking-wider`}>Aesthetics</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {activeTab === "global" && globalRankings.map((airport) => (
-                    <tr key={airport.iata} className={`${getRankBgColor(airport.rank || 0)} border-l-4`}>
+                <tbody className="divide-y divide-gray-200">
+                  {getCurrentData().map((airport, index) => (
+                    <tr key={airport.iata} className={`${themeClasses.hover} transition-colors duration-150 ${getRankBgColor(index + 1)}`}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
-                          {getRankIcon(airport.rank || 0)}
-                          <span className="text-sm font-medium text-gray-900">#{airport.rank}</span>
+                          {getRankIcon(index + 1)}
+                          <span className={`font-bold text-lg ${themeClasses.text}`}>#{index + 1}</span>
                         </div>
                       </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{airport.airport}</div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{airport.iata}</div>
-                          <div className="text-sm text-gray-500">{airport.airport}</div>
-                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {airport.iata}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
@@ -457,40 +331,23 @@ export default function RankingsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{airport.aesthetics}</td>
                     </tr>
                   ))}
-
-                  {activeTab === "category" && categoryRankings?.rankings.map((airport) => (
-                    <tr key={airport.iata} className={`${getRankBgColor(airport.rank || 0)} border-l-4`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          {getRankIcon(airport.rank || 0)}
-                          <span className="text-sm font-medium text-gray-900">#{airport.rank}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{airport.iata}</div>
-                          <div className="text-sm text-gray-500">{airport.airport}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          {airport.cex}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${selectedCategory === 'comfort' ? 'text-indigo-600' : 'text-gray-900'}`}>
-                          {airport.comfort}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm font-medium ${selectedCategory === 'efficiency' ? 'text-indigo-600' : 'text-gray-900'}`}>
-                          {airport.efficiency}
-                        </span>
-                      </td>
-              </div>
-            )}
-          </div>
-        )}
+                </tbody>
+              </table>
+              
+              {/* Empty State */}
+              {(
+                (activeTab === "global" && globalRankings.length === 0) ||
+                (activeTab === "category" && (!categoryRankings || categoryRankings.rankings.length === 0)) ||
+                (activeTab === "region" && (!regionRankings || regionRankings.rankings.length === 0))
+              ) && (
+                <div className="px-6 py-12 text-center">
+                  <LuTrophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No rankings available for this selection.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -517,47 +374,4 @@ export default function RankingsPage() {
   }
 
   return <RankingsContent />;
-}
-                  {activeTab === "region" && regionRankings?.rankings.map((airport) => (
-                    <tr key={airport.iata} className={`${getRankBgColor(airport.rank || 0)} border-l-4`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          {getRankIcon(airport.rank || 0)}
-                          <span className="text-sm font-medium text-gray-900">#{airport.rank}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{airport.iata}</div>
-                          <div className="text-sm text-gray-500">{airport.airport}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          {airport.cex}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{airport.comfort}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{airport.efficiency}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{airport.aesthetics}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Empty State */}
-            {((activeTab === "global" && globalRankings.length === 0) ||
-              (activeTab === "category" && (!categoryRankings || categoryRankings.rankings.length === 0)) ||
-              (activeTab === "region" && (!regionRankings || regionRankings.rankings.length === 0))) && (
-              <div className="px-6 py-12 text-center">
-                <LuTrophy className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No rankings available for this selection.</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
